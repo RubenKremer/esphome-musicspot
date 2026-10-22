@@ -135,6 +135,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D3 | 6 items per browse page | Proposed | Revisit after P2.6 on real hardware |
 | D4 | Name: product **MusicSpot**, repo `esphome-musicspot`, domain `musicspot` | Agreed | No "Spotify" in names (Spotify brand terms); "ESPHome" only in repo slug, not product name |
 | D5 | Single public repo, integration at root, firmware in `esphome/` | Agreed | HACS needs `custom_components/` at root; firmware consumed as remote ESPHome packages |
+| D6 | MIT licence | Agreed | Don't publish pre-built firmware `.bin` files (ESPHome C++ runtime is GPLv3); users compile from YAML |
 
 ## Findings
 
