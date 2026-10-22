@@ -229,7 +229,7 @@ api:
         - lvgl.label.update:
             id: ms_browse_pager
             text: !lambda |-
-              return pages > 1 ? str_sprintf("%d/%d", page, pages) : std::string("");
+              return pages > 1 ? str_sprintf("%d/%d", (int) page, (int) pages) : std::string("");
         - lvgl.label.update:
             id: ms_browse_empty
             text: !lambda |-
