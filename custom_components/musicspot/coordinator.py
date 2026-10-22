@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -14,6 +14,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import MusicSpotApi, SpotifyApiError, SpotifyAuthError, SpotifyRateLimitError
 from .const import DOMAIN, LOGGER, UPDATE_INTERVAL_FAST, UPDATE_INTERVAL_SLOW
 
+if TYPE_CHECKING:
+    from .panel import MusicSpotPanel
+
 
 @dataclass
 class MusicSpotData:
@@ -22,6 +25,7 @@ class MusicSpotData:
     api: MusicSpotApi
     coordinator: MusicSpotCoordinator
     user: dict[str, Any]
+    panels: dict[str, MusicSpotPanel] = field(default_factory=dict)
 
 
 MusicSpotConfigEntry = ConfigEntry[MusicSpotData]

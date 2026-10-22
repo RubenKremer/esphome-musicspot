@@ -67,15 +67,15 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 **Done when:** stable screen and touch during heavy Wi-Fi traffic.
 
 ## Phase 2 — Thin-client firmware (`esphome/packages/`)
-- [ ] P2.1 Screen navigation: Now Playing / Browse / Devices (tab bar or swipe)
+- [x] P2.1 Screen navigation: Now Playing / Browse / Devices (tab bar or swipe) — verified on device via Developer Tools, 2026-10-23
 - [ ] P2.2 API action `show_now_playing(title, artist, album, art_url, state, position_ms, duration_ms, volume, shuffle, repeat)`
 - [ ] P2.3 Now Playing screen: 220×220 art via `online_image` (JPEG, placeholder + `on_error`), text, controls
 - [ ] P2.4 Local progress-bar interpolation between updates
-- [ ] P2.5 API action `show_page(breadcrumb, page, pages, can_back, titles[], subtitles[], thumbs[])` (no ids: D11)
-- [ ] P2.6 Browse screen: 6 fixed rows (48px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶
+- [x] P2.5 API action `show_page(breadcrumb, page, pages, can_back, titles[], subtitles[], thumbs[])` (no ids: D11) — verified on device via Developer Tools, 2026-10-23
+- [x] P2.6 Browse screen: 6 fixed rows (48px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶ — verified on device via Developer Tools, 2026-10-23
 - [ ] P2.7 API action `show_devices(names[], active)` + Devices screen (5 rows + volume slider)
 - [ ] P2.8 API action `set_busy(bool)` + spinner overlay
-- [ ] P2.9 Outgoing events `esphome.musicspot_input`: tap/queue (slot), back, page(±1), device (slot), control(cmd, value), awake, hello
+- [x] P2.9 Outgoing events `esphome.musicspot_input`: tap/queue (slot), back, page(±1), device (slot), control(cmd, value), awake, hello — verified: awake, tap, queue, back, page events seen with device_id, 2026-10-23
       — all pass the device's own identity
 - [ ] P2.10 Fallback screens: no connection to HA / nothing playing / no devices
 - [ ] P2.11 Test everything from HA Developer Tools with fake data (no integration yet)
@@ -95,7 +95,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ## Phase 4 — Panel subentry + Now Playing push
 - [ ] P4.1 Panel subentry: pick ESPHome device, optional default playback device
 - [ ] P4.2 Listen to `esphome.musicspot_input`; resolve event `device_id` → panel → account
-- [ ] P4.3 Image view `/api/musicspot/{panel}/art/{slot}.jpg`: signed path, Pillow resize, baseline JPEG, cache
+- [ ] P4.3 Image view `/api/musicspot/art/{token}/{name}`: per-panel random token (D13), Pillow resize, baseline JPEG, cache
 - [ ] P4.4 Push `show_now_playing` on state change (debounced) and on panel wake
 - [ ] P4.5 Controls: play/pause, next, prev, seek, volume, shuffle, repeat
 - [ ] P4.6 `set_awake` switches coordinator between fast and slow polling
@@ -113,7 +113,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 **Done when:** can start a playlist and queue a song entirely from the panel.
 
 ## Phase 6 — Devices, queue, search
-- [ ] P6.1 Device list push + transfer playback
+- [ ] P6.1 Device list push + transfer playback (implemented early in Phase 4 for P2.7; verify here)
 - [ ] P6.2 Queue view (read-only, `GET /me/player/queue`)
 - [ ] P6.3 Search: LVGL keyboard → `search` input event → results as a browse page (10/page)
 
@@ -140,9 +140,11 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D7 | P1 uses the proven `st7701s` config, not the `mipi_rgb` preset | Proposed | Lowest risk on the test unit; try the preset after P1 passes and switch if equal |
 | D8 | `touch-control-2` is dedicated to MusicSpot (reflashed as `musicspot-1`) | Agreed | Its old dashboard config lives in artemis-esphome-config, which this project must not modify |
 | D9 | Integration serves art over **plain HTTP on the LAN**, **pre-sized to the exact widget size** (no device-side `resize`), small baseline JPEGs | Proposed | Downloads + decode block the ESPHome main loop, so LVGL stutters; TLS handshake and resizing add most of the cost (P1.5) |
-| D10 | Panel input goes to HA as **events** (`esphome.musicspot_input`), not HA actions | Proposed | No "unknown action" errors before the integration exists; HA adds `device_id`, so no device identity in firmware. Verify `device_id` in P2.11 |
+| D10 | Panel input goes to HA as **events** (`esphome.musicspot_input`), not HA actions | Agreed | No "unknown action" errors before the integration exists; HA adds `device_id`, so no device identity in firmware. Verified 2026-10-22: events carry `device_id` |
 | D11 | Panel sends **slot numbers**, never Spotify ids; the integration keeps the ids per panel page | Proposed | Keeps firmware generic and payloads small; protocol in `docs/panel-protocol.md` |
 | D12 | Own minimal Spotify client (`api.py`, aiohttp, no requirements) instead of `spotifyaio` | Proposed | Only the endpoints we use, written against the Feb-2026 API; Spotify changes fixed here without waiting for a library release |
+| D13 | Album art served without auth via an unguessable per-panel token in the URL (new on every restart) | Proposed | ESPHome `online_image` can't send auth headers or follow HA signed paths; only public cover art is exposed |
+| D14 | Coordinator only polls while at least one panel is linked (coordinator listener) | Proposed | No panels = no Spotify quota used |
 
 ## Findings
 
@@ -162,6 +164,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - 2026-10-22: P1 config validates on ESPHome 2026.10.0 (Ruben's dashboard). `pad_row`/`pad_column` belong under the `layout:` key, not on the page or widget.
 - 2026-10-22: First flash OK on `musicspot-1` (ESP32-S3 rev0.2). Boot log suggests `flash_chip: boya` under
   `esp32 > framework > advanced` to save IRAM — chip vendor may differ per unit, so keep it out of the shared hardware package.
+- 2026-10-22: Panel events arrive as `esphome.musicspot_input` with HA-added `device_id` (e.g. `awake` value `1` on touch after idle); all data values are strings.
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,

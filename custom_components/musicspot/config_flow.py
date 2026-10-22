@@ -6,12 +6,19 @@ from collections.abc import Mapping
 import logging
 from typing import Any
 
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlowResult
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    ConfigEntry,
+    ConfigFlowResult,
+    ConfigSubentryFlow,
+)
+from homeassistant.core import callback
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import MusicSpotApi, SpotifyApiError, SpotifyForbiddenError, StaticTokenProvider
-from .const import DOMAIN, SCOPES
+from .const import DOMAIN, SCOPES, SUBENTRY_PANEL
+from .panel_flow import PanelSubentryFlowHandler
 
 
 class MusicSpotFlowHandler(
@@ -21,6 +28,14 @@ class MusicSpotFlowHandler(
 
     DOMAIN = DOMAIN
     VERSION = 1
+
+    @classmethod
+    @callback
+    def async_get_supported_subentry_types(
+        cls, config_entry: ConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Panels are added as subentries of a Spotify account."""
+        return {SUBENTRY_PANEL: PanelSubentryFlowHandler}
 
     @property
     def logger(self) -> logging.Logger:

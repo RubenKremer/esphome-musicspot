@@ -31,5 +31,35 @@
     "create_entry": {
       "default": "Successfully connected to Spotify."
     }
+  },
+  "config_subentries": {
+    "panel": {
+      "initiate_flow": {
+        "user": "Add panel"
+      },
+      "entry_type": "Panel",
+      "step": {
+        "user": {
+          "title": "Add a MusicSpot panel",
+          "description": "Pick an ESPHome device running the MusicSpot firmware. It will control this Spotify account.",
+          "data": {
+            "device_id": "Panel",
+            "art_base_url": "Album art base URL",
+            "default_device": "Default playback device"
+          },
+          "data_description": {
+            "device_id": "The ESPHome device running MusicSpot. It must be online.",
+            "art_base_url": "How the panel reaches Home Assistant for album art, e.g. http://192.168.1.2:8123. Plain HTTP on your LAN is fastest. Leave empty to use Home Assistant's internal URL.",
+            "default_device": "Spotify device name to start playback on when nothing is active, e.g. Living room. Optional."
+          }
+        }
+      },
+      "error": {
+        "not_musicspot": "This device does not offer the MusicSpot actions. Check that it runs the MusicSpot firmware and is connected to Home Assistant."
+      },
+      "abort": {
+        "already_configured": "This panel is already linked to a Spotify account."
+      }
+    }
   }
 }

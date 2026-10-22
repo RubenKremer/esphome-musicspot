@@ -3,11 +3,12 @@
   "name": "MusicSpot",
   "codeowners": ["@RubenKremer"],
   "config_flow": true,
-  "dependencies": ["application_credentials"],
+  "dependencies": ["application_credentials", "http"],
+  "after_dependencies": ["esphome"],
   "documentation": "https://github.com/RubenKremer/esphome-musicspot",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/RubenKremer/esphome-musicspot/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

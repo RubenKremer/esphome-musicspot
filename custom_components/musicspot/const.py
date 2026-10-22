@@ -22,6 +22,17 @@ SCOPES = [
     "playlist-read-collaborative",
 ]
 
+SUBENTRY_PANEL = "panel"
+CONF_DEVICE_ID = "device_id"
+CONF_ART_BASE_URL = "art_base_url"
+CONF_DEFAULT_DEVICE = "default_device"
+
+# Panel protocol (docs/panel-protocol.md)
+EVENT_PANEL_INPUT = "esphome.musicspot_input"
+ESPHOME_DOMAIN = "esphome"
+ART_SIZE_NOW = 220
+ART_SIZE_THUMB = 48
+
 # Poll fast only while a panel is awake; development-mode quota is shared per app.
 UPDATE_INTERVAL_SLOW = timedelta(seconds=30)
 UPDATE_INTERVAL_FAST = timedelta(seconds=3)
