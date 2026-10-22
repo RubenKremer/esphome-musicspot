@@ -46,11 +46,11 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ---
 
 ## Phase 0 — Prerequisites
-- [ ] P0.1 Spotify Developer app created, owned by a Premium account; Client ID/Secret stored safely
-- [ ] P0.2 Redirect URI `https://my.home-assistant.io/redirect/oauth` added to the Spotify app
-- [ ] P0.3 Home Assistant dev instance available (version noted in Findings)
-- [ ] P0.4 ESPHome version with `mipi_rgb` + `GUITION-4848S040` preset (version noted in Findings)
-- [ ] P0.5 Board pinout confirmed (touch GT911 I²C pins, backlight pin) and noted in Findings
+- [x] P0.1 Spotify Developer app created, owned by a Premium account; Client ID/Secret stored safely — verified: confirmed by Ruben 2026-10-22
+- [x] P0.2 Redirect URI `https://my.home-assistant.io/redirect/oauth` added to the Spotify app — verified: confirmed by Ruben 2026-10-22
+- [x] P0.3 Home Assistant dev instance available (version noted in Findings) — verified: HA 2026.10.2 reported by Ruben
+- [x] P0.4 ESPHome version with `mipi_rgb` + `GUITION-4848S040` preset (version noted in Findings) — verified: ESPHome 2026.10.0 reported by Ruben
+- [x] P0.5 Board pinout confirmed (touch GT911 I²C pins, backlight pin) and noted in Findings — verified: taken from working unit `touch-control-2`
 - [x] P0.6 `git init`, `.gitignore` (secrets.yaml, .esphome/, __pycache__) — verified: initial commit on `main`
 
 **Done when:** board on the desk, HA reachable, ESPHome can compile a blank config.
@@ -136,9 +136,22 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D4 | Name: product **MusicSpot**, repo `esphome-musicspot`, domain `musicspot` | Agreed | No "Spotify" in names (Spotify brand terms); "ESPHome" only in repo slug, not product name |
 | D5 | Single public repo, integration at root, firmware in `esphome/` | Agreed | HACS needs `custom_components/` at root; firmware consumed as remote ESPHome packages |
 | D6 | MIT licence | Agreed | Don't publish pre-built firmware `.bin` files (ESPHome C++ runtime is GPLv3); users compile from YAML |
+| D7 | P1 uses the proven `st7701s` config, not the `mipi_rgb` preset | Proposed | Lowest risk on the test unit; try the preset after P1 passes and switch if equal |
+| D8 | `touch-control-2` is dedicated to MusicSpot (reflashed as `musicspot-1`) | Agreed | Its old dashboard config lives in artemis-esphome-config, which this project must not modify |
 
 ## Findings
 
 <!-- Versions, pinouts, measured timings, API surprises. Date each entry. -->
 - 2026-10-22: Spotify Feb-2026 dev-mode changes: Premium owner, 5 users/app, search limit 10, batch/browse endpoints removed. Player + queue endpoints unaffected.
 - 2026-10-22: ESPHome `online_image` supports baseline JPEG only (no progressive).
+- 2026-10-22: Versions: Home Assistant 2026.10.2, ESPHome 2026.10.0.
+- 2026-10-22: Test unit = `touch-control-2` from github.com/RubenKremer/artemis-esphome-config
+  (`modules/hardware/guition-esp32-s3-4848s040.yaml`). Proven settings on that unit:
+  - ESP32-S3, 16 MB flash, PSRAM octal @ 80 MHz, framework esp-idf
+  - Display: `st7701s` platform, SPI init CLK GPIO48 / MOSI GPIO47, CS 39, DE 18, HSYNC 16, VSYNC 17, PCLK 21,
+    `pclk_frequency: 12MHz`, RGB data R 11,12,13,14,0 / G 8,20,3,46,9,10 / B 4,5,6,7,15
+  - Touch: GT911 on I²C SDA 19, SCL 45 (strapping-pin warning ignored)
+  - Backlight: LEDC PWM on GPIO38 @ 100 Hz
+  - Relays (some variants): GPIO40, GPIO2, GPIO1 — unused by MusicSpot; leave unconfigured
+  - `online_image` already works on this unit with HA-served JPEGs over plain HTTP (`http_request`, RGB565, `resize`)
+- 2026-10-22: P1 config validates on ESPHome 2026.10.0 (Ruben's dashboard). LVGL pages reject `pad_row`; use it on a child `obj` instead.

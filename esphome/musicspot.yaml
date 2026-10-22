@@ -1,0 +1,46 @@
+# MusicSpot panel — device config
+#
+# Board: Guition ESP32-S3-4848S040. Copy secrets.yaml.example to secrets.yaml and fill it in.
+# First flash over an existing ESPHome install: see esphome/README.md.
+
+substitutions:
+  name: musicspot-1
+  friendly_name: MusicSpot 1
+  pclk_frequency: 12MHz
+  stress_image_url: !secret musicspot_test_image_url
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.10.0
+  project:
+    name: "rubenkremer.musicspot"
+    version: "0.1.0"
+
+packages:
+  hardware: !include packages/hardware/guition-esp32-s3-4848s040.yaml
+  bringup: !include packages/test/bringup.yaml
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret musicspot_api_key
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  min_auth_mode: WPA2
+  ap:
+    ssid: "MusicSpot Fallback"
+    password: !secret musicspot_ap_password
+
+captive_portal:
+
+ota:
+  - platform: esphome
+    on_begin:
+      then:
+        - light.turn_off: display_backlight
+        - lvgl.pause:

@@ -1,0 +1,169 @@
+# P1 bring-up test page (temporary — removed once the real screens exist in Phase 2)
+#
+# Covers P1.2 (touch coordinates), P1.3 (backlight slider), P1.4 (hello page)
+# and P1.5 (stress test: repeated online_image downloads while a spinner animates).
+#
+# Requires substitution: stress_image_url — a baseline JPEG reachable over plain HTTP,
+# e.g. a file in Home Assistant's /config/www served as http://<ha>:8123/local/<file>.jpg
+
+globals:
+  - id: tap_count
+    type: int
+    initial_value: "0"
+  - id: download_ok
+    type: int
+    initial_value: "0"
+  - id: download_fail
+    type: int
+    initial_value: "0"
+  - id: stress_enabled
+    type: bool
+    initial_value: "false"
+
+http_request:
+  verify_ssl: false
+  timeout: 10s
+
+image:
+  - platform: online_image
+    id: stress_img
+    url: ${stress_image_url}
+    format: JPEG
+    type: RGB565
+    resize: 200x200
+    on_download_finished:
+      - lambda: id(download_ok) += 1;
+      - lvgl.image.update:
+          id: img_stress
+          src: stress_img
+      - lvgl.label.update:
+          id: lbl_stress
+          text: !lambda |-
+            return str_sprintf("ok %d / fail %d", id(download_ok), id(download_fail));
+    on_error:
+      - lambda: id(download_fail) += 1;
+      - lvgl.label.update:
+          id: lbl_stress
+          text: !lambda |-
+            return str_sprintf("ok %d / fail %d", id(download_ok), id(download_fail));
+
+touchscreen:
+  - id: !extend my_touchscreen
+    on_touch:
+      - lvgl.label.update:
+          id: lbl_touch
+          text: !lambda |-
+            return str_sprintf("touch x=%d y=%d", touch.x, touch.y);
+
+interval:
+  # Stress test: re-download with a cache-busting query string while enabled
+  - interval: 3s
+    then:
+      - if:
+          condition:
+            lambda: return id(stress_enabled);
+          then:
+            - online_image.set_url:
+                id: stress_img
+                url: !lambda |-
+                  return std::string("${stress_image_url}") + "?t=" + to_string(millis());
+  # Free memory readout, to spot leaks during the stress test
+  - interval: 5s
+    then:
+      - lvgl.label.update:
+          id: lbl_mem
+          text: !lambda |-
+            return str_sprintf("PSRAM free %u KB  heap free %u KB",
+                (unsigned) (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024),
+                (unsigned) (heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+
+lvgl:
+  displays:
+    - my_display
+  touchscreens:
+    - my_touchscreen
+  pages:
+    - id: page_bringup
+      bg_color: 0x000000
+      layout:
+        type: flex
+        flex_flow: COLUMN
+        flex_align_cross: CENTER
+      pad_all: 12
+      scrollable: false
+      widgets:
+        - label:
+            text: "MusicSpot bring-up"
+            text_font: montserrat_28
+            text_color: 0xFFFFFF
+        - label:
+            id: lbl_touch
+            text: "touch the screen"
+            text_font: montserrat_18
+            text_color: 0xB0B0B0
+        - obj:
+            width: 100%
+            height: SIZE_CONTENT
+            bg_opa: TRANSP
+            border_width: 0
+            pad_all: 0
+            layout:
+              type: flex
+              flex_flow: ROW
+              flex_align_main: SPACE_EVENLY
+              flex_align_cross: CENTER
+            widgets:
+              - button:
+                  id: btn_tap
+                  width: 140
+                  height: 60
+                  on_click:
+                    - lambda: id(tap_count) += 1;
+                    - lvgl.label.update:
+                        id: lbl_tap
+                        text: !lambda return str_sprintf("Tapped %d", id(tap_count));
+                  widgets:
+                    - label:
+                        id: lbl_tap
+                        text: "Tap me"
+                        align: CENTER
+              - spinner:
+                  width: 60
+                  height: 60
+                  spin_time: 1s
+                  arc_length: 90deg
+              - switch:
+                  id: sw_stress
+                  width: 80
+                  height: 40
+                  on_change:
+                    - lambda: id(stress_enabled) = x;
+        - label:
+            text: "Stress test (switch) / brightness (slider)"
+            text_font: montserrat_14
+            text_color: 0x808080
+        - slider:
+            id: sld_brightness
+            width: 90%
+            min_value: 5
+            max_value: 100
+            value: 100
+            on_release:
+              - light.turn_on:
+                  id: display_backlight
+                  brightness: !lambda return x / 100.0;
+        - image:
+            id: img_stress
+            src: stress_img
+            width: 200
+            height: 200
+        - label:
+            id: lbl_stress
+            text: "ok 0 / fail 0"
+            text_font: montserrat_16
+            text_color: 0xFFFFFF
+        - label:
+            id: lbl_mem
+            text: "measuring memory..."
+            text_font: montserrat_14
+            text_color: 0x808080

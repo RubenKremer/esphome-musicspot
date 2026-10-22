@@ -15,6 +15,8 @@ GitHub: `RubenKremer/esphome-musicspot` (public).
 - New decisions go in the Decisions table; versions, pinouts and API surprises go in Findings (dated).
 - Reference task IDs in commit messages, e.g. `P2.3: now playing screen`.
 - Never commit secrets: `secrets.yaml`, Spotify Client ID/Secret, HA tokens.
+- `github.com/RubenKremer/artemis-esphome-config` is read-only reference material: never modify, commit to or push it.
+- No local ESPHome/Docker toolchain: Ruben validates and flashes from the ESPHome dashboard on his home server.
 
 ## Constraints
 - Spotify Web API dev mode: Premium owner, max 5 users, shared quota, search max 10/page,

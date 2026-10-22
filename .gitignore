@@ -24,3 +24,6 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local reference copies of other configs
+esphome/temp-*.yaml
