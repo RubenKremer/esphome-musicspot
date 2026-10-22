@@ -35,6 +35,8 @@ if TYPE_CHECKING:
 _POSITION_TOLERANCE_MS = 2500
 # Spotify needs a moment before a command shows up in /me/player.
 _REFRESH_DELAY_S = 0.5
+# After a seek, Spotify may still report the old position; don't push it back to the panel.
+_SEEK_GRACE_S = 4.0
 _REPEAT_CYCLE = {"off": "context", "context": "track", "track": "off"}
 _MAX_DEVICES = 5
 
@@ -86,6 +88,7 @@ class MusicSpotPanel:
         self._art_url = ""
         self._device_ids: list[str] = []
         self._shown_active_device: str | None = None
+        self._seek_grace_until = 0.0
         self._push_lock = asyncio.Lock()
 
     # ---- lifecycle -------------------------------------------------------
@@ -159,6 +162,8 @@ class MusicSpotPanel:
             k: v for k, v in last.items() if k != "position_ms"
         }:
             return True
+        if time.monotonic() < self._seek_grace_until:
+            return False
         expected = last["position_ms"]
         if last["state"] == "playing":
             expected += int((time.monotonic() - self._last_np_at) * 1000)
@@ -314,6 +319,11 @@ class MusicSpotPanel:
                 await api.set_volume(value)
             elif command == "seek":
                 await api.seek(value)
+                # The panel already jumped; treat that as what it shows.
+                if self._last_np is not None:
+                    self._last_np["position_ms"] = value
+                    self._last_np_at = time.monotonic()
+                self._seek_grace_until = time.monotonic() + _SEEK_GRACE_S
             else:
                 LOGGER.debug("Unknown control command %s", command)
                 return

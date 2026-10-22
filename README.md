@@ -41,7 +41,9 @@ with a HACS integration that connects each panel to a Spotify account.
 ## Known limitations (Spotify Web API)
 - No true "play next": tracks can only be added to the end of the queue, and the queue can't be reordered.
 - Development-mode Spotify apps allow at most 5 users.
-- Devices may disappear from the device list while paused or idle.
+- Devices may disappear from the device list while paused or idle. **Google Cast speakers** are the
+  worst case: once playback moves away, Spotify stops offering them and transfers back fail. Start
+  playback on the speaker once from the Spotify app and it becomes available again.
 
 ## Disclaimer
 MusicSpot is an independent community project. It is not affiliated with or endorsed by Spotify,

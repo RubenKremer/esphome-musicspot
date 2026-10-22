@@ -449,7 +449,11 @@ lvgl:
                   on_press:
                     - lambda: id(ms_seeking) = true;
                   on_release:
-                    - lambda: id(ms_seeking) = false;
+                    # Jump locally right away; Spotify reports the new position a moment later
+                    - lambda: |-
+                        id(ms_seeking) = false;
+                        id(ms_pos_ms) = (int) ((int64_t) x * id(ms_dur_ms) / 1000);
+                        id(ms_pos_at) = millis();
                     - script.execute:
                         id: ms_send_input
                         type: control
