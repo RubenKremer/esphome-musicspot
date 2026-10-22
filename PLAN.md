@@ -1,7 +1,7 @@
-# ESPHome Spotifier — Build Plan
+# MusicSpot — Build Plan
 
 A wall-mounted Spotify controller on a **Guition ESP32-4848S040** (4" 480×480, ESP32-S3, 8 MB PSRAM),
-running **ESPHome + LVGL** as a thin client, driven by a **HACS custom integration** (`spotify_panel`)
+running **ESPHome + LVGL** as a thin client, driven by a **HACS custom integration** (`musicspot`)
 that links each panel to a Spotify account.
 
 **How to use this file**
@@ -10,15 +10,17 @@ that links each panel to a Spotify account.
 - Record decisions in the [Decisions](#decisions) table and surprises in [Findings](#findings).
 - Task IDs (`P2.3`) are stable — reference them in commits, e.g. `P2.3: add show_page action`.
 
-**Repository layout**
+**Repository:** `github.com/RubenKremer/esphome-musicspot` (public)
+
+**Repository layout** (HACS requires `custom_components/` and `hacs.json` at the root)
 ```
+custom_components/musicspot/     Home Assistant integration (HACS)
+hacs.json
 esphome/                         ESPHome firmware (thin client)
-  spotify-panel.yaml             device config (board-specific)
-  packages/                      reusable pieces (screens, actions)
-hass_integration/
-  custom_components/spotify_panel/
-  hacs.json
-PLAN.md  CLAUDE.md
+  musicspot.yaml                 device config (board-specific)
+  packages/                      reusable pieces (screens, actions);
+                                 users pull via github://RubenKremer/esphome-musicspot/esphome/packages/...
+README.md  PLAN.md  CLAUDE.md
 ```
 
 ---
@@ -28,8 +30,8 @@ PLAN.md  CLAUDE.md
 ```
 ESP32-4848S040 (ESPHome + LVGL)  ── screens only, no entity IDs
    ▲ API actions: show_now_playing / show_page / show_devices / set_busy
-   │ HA actions:  spotify_panel.tap / back / page / control / set_awake
-Home Assistant: custom integration "spotify_panel"
+   │ HA actions:  musicspot.tap / back / page / control / set_awake
+Home Assistant: custom integration "musicspot"
    • config entry  = Spotify account (own OAuth, application_credentials)
    • subentry      = panel  ↔ ESPHome device
    • coordinator   = fast poll while a panel is awake, slow when idle
@@ -79,8 +81,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 **Done when:** every screen can be driven by hand from Developer Tools, and taps show up as HA action calls.
 
-## Phase 3 — Integration skeleton (`hass_integration/`)
-- [ ] P3.1 HACS layout: `custom_components/spotify_panel/`, `manifest.json`, `hacs.json`, `README.md`
+## Phase 3 — Integration skeleton (`custom_components/musicspot/`)
+- [ ] P3.1 HACS layout: `custom_components/musicspot/`, `manifest.json`, `hacs.json`, `README.md`
 - [ ] P3.2 `application_credentials` + OAuth2 config flow (account = config entry)
 - [ ] P3.3 Spotify API client (`spotifyaio` where it covers it, raw `aiohttp` otherwise), token refresh
 - [ ] P3.4 Account coordinator: playback state; fast/slow polling; 429 `QUOTA_EXCEEDED` back-off
@@ -91,8 +93,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 ## Phase 4 — Panel subentry + Now Playing push
 - [ ] P4.1 Panel subentry: pick ESPHome device, optional default playback device
-- [ ] P4.2 Register `spotify_panel.*` actions; resolve caller device → panel → account
-- [ ] P4.3 Image view `/api/spotify_panel/{panel}/art/{slot}.jpg`: signed path, Pillow resize, baseline JPEG, cache
+- [ ] P4.2 Register `musicspot.*` actions; resolve caller device → panel → account
+- [ ] P4.3 Image view `/api/musicspot/{panel}/art/{slot}.jpg`: signed path, Pillow resize, baseline JPEG, cache
 - [ ] P4.4 Push `show_now_playing` on state change (debounced) and on panel wake
 - [ ] P4.5 Controls: play/pause, next, prev, seek, volume, shuffle, repeat
 - [ ] P4.6 `set_awake` switches coordinator between fast and slow polling
@@ -112,7 +114,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ## Phase 6 — Devices, queue, search
 - [ ] P6.1 Device list push + transfer playback
 - [ ] P6.2 Queue view (read-only, `GET /me/player/queue`)
-- [ ] P6.3 Search: LVGL keyboard → `spotify_panel.search` → results as a browse page (10/page)
+- [ ] P6.3 Search: LVGL keyboard → `musicspot.search` → results as a browse page (10/page)
 
 ## Phase 7 — Polish & release
 - [ ] P7.1 Dim/screensaver after inactivity; wake on touch (optional LD2410 presence)
@@ -131,6 +133,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D1 | Integration has its **own Spotify OAuth** (not reusing core Spotify integration) | Proposed | Avoids depending on another integration's internals; each user brings their own Spotify app (dev mode: 5 users) |
 | D2 | Device is a thin client; HA pushes via ESPHome API actions | Agreed | One generic firmware for all panels |
 | D3 | 6 items per browse page | Proposed | Revisit after P2.6 on real hardware |
+| D4 | Name: product **MusicSpot**, repo `esphome-musicspot`, domain `musicspot` | Agreed | No "Spotify" in names (Spotify brand terms); "ESPHome" only in repo slug, not product name |
+| D5 | Single public repo, integration at root, firmware in `esphome/` | Agreed | HACS needs `custom_components/` at root; firmware consumed as remote ESPHome packages |
 
 ## Findings
 

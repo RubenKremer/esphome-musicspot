@@ -1,7 +1,13 @@
-# ESPHome Spotifier
+# MusicSpot
 
-Spotify controller for the Guition ESP32-4848S040: ESPHome + LVGL thin client (`esphome/`)
-driven by a HACS custom integration `spotify_panel` (`hass_integration/`).
+Touch-panel music controller for the Guition ESP32-4848S040: ESPHome + LVGL thin client (`esphome/`)
+driven by a HACS custom integration `musicspot` (`custom_components/musicspot/`, at repo root as HACS requires).
+GitHub: `RubenKremer/esphome-musicspot` (public).
+
+## Naming
+- Product name is **MusicSpot**. Never put "Spotify" (or variants) in the product, repo or integration name;
+  describing compatibility ("for Spotify") in docs is fine.
+- Don't present it as an official ESPHome or Home Assistant product.
 
 ## Working rules
 - `PLAN.md` is the source of truth. Pick the next unticked task in order unless told otherwise.
