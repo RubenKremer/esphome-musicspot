@@ -17,6 +17,7 @@ TO_REDACT = {
     "id",
     "uri",
     "href",
+    "external_urls",
     "email",
     "display_name",
     "title",

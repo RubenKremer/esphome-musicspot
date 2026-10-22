@@ -83,12 +83,12 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 **Done when:** every screen can be driven by hand from Developer Tools, and taps show up as HA action calls.
 
 ## Phase 3 — Integration skeleton (`custom_components/musicspot/`)
-- [ ] P3.1 HACS layout: `custom_components/musicspot/`, `manifest.json`, `hacs.json`, `README.md`
-- [ ] P3.2 `application_credentials` + OAuth2 config flow (account = config entry)
-- [ ] P3.3 Spotify API client (`spotifyaio` where it covers it, raw `aiohttp` otherwise), token refresh
-- [ ] P3.4 Account coordinator: playback state; fast/slow polling; 429 `QUOTA_EXCEEDED` back-off
+- [x] P3.1 HACS layout: `custom_components/musicspot/`, `manifest.json`, `hacs.json`, `README.md` — verified: installed via HACS custom repo, 2026-10-22
+- [x] P3.2 `application_credentials` + OAuth2 config flow (account = config entry) — verified: account added via UI (Spotify sign-in), 2026-10-22
+- [x] P3.3 Spotify API client (own aiohttp client, D12), token refresh — verified: `/me` + `/me/player` calls succeed, 2026-10-22 (token refresh not yet observed)
+- [x] P3.4 Account coordinator: playback state; fast/slow polling; 429 `QUOTA_EXCEEDED` back-off — verified: debug log shows playback polled (0.2 s fetch), 2026-10-22 (fast mode and 429 path not yet exercised)
 - [ ] P3.5 Reauth flow when the token is revoked
-- [ ] P3.6 Diagnostics (redacted)
+- [x] P3.6 Diagnostics (redacted) — verified: downloaded from HA 2026-10-22; tokens, ids, names redacted. Gap found and fixed: `external_urls` leaked Spotify ids
 
 **Done when:** account adds via UI, playback state visible in logs, survives HA restart.
 
@@ -162,6 +162,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - 2026-10-22: P1 config validates on ESPHome 2026.10.0 (Ruben's dashboard). `pad_row`/`pad_column` belong under the `layout:` key, not on the page or widget.
 - 2026-10-22: First flash OK on `musicspot-1` (ESP32-S3 rev0.2). Boot log suggests `flash_chip: boya` under
   `esp32 > framework > advanced` to save IRAM — chip vendor may differ per unit, so keep it out of the shared hardware package.
+- 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
+  `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
   PSRAM free ~5917 KB and heap free ~149 KB, no display drift/flicker. Spinner stutters while each image downloads:
   `online_image` runs in the main loop (first download blocked ~1.3 s, warnings of 900+ ms). Real use refreshes art
