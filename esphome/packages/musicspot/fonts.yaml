@@ -7,13 +7,16 @@ font:
     size: 24
     bpp: 4
     glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true  # Roboto lacks the combining marks (U+0302…); precomposed é, ü, ç are present
   - file: "gfonts://Roboto"
     id: ms_font_body
     size: 18
     bpp: 4
     glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true  # Roboto lacks the combining marks (U+0302…); precomposed é, ü, ç are present
   - file: "gfonts://Roboto"
     id: ms_font_small
     size: 14
     bpp: 4
     glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true  # Roboto lacks the combining marks (U+0302…); precomposed é, ü, ç are present
