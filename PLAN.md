@@ -142,6 +142,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D9 | Integration serves art over **plain HTTP on the LAN**, **pre-sized to the exact widget size** (no device-side `resize`), small baseline JPEGs | Proposed | Downloads + decode block the ESPHome main loop, so LVGL stutters; TLS handshake and resizing add most of the cost (P1.5) |
 | D10 | Panel input goes to HA as **events** (`esphome.musicspot_input`), not HA actions | Proposed | No "unknown action" errors before the integration exists; HA adds `device_id`, so no device identity in firmware. Verify `device_id` in P2.11 |
 | D11 | Panel sends **slot numbers**, never Spotify ids; the integration keeps the ids per panel page | Proposed | Keeps firmware generic and payloads small; protocol in `docs/panel-protocol.md` |
+| D12 | Own minimal Spotify client (`api.py`, aiohttp, no requirements) instead of `spotifyaio` | Proposed | Only the endpoints we use, written against the Feb-2026 API; Spotify changes fixed here without waiting for a library release |
 
 ## Findings
 

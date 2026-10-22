@@ -23,6 +23,18 @@ with a HACS integration that connects each panel to a Spotify account.
 - A Guition ESP32-4848S040 flashed with ESPHome
 - Spotify Premium, and your own app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 
+## Installing the integration (development builds)
+1. HACS → ⋮ → **Custom repositories** → add `https://github.com/RubenKremer/esphome-musicspot`, type **Integration**.
+2. Download **MusicSpot** from HACS and restart Home Assistant.
+3. **Settings → Devices & services → Add integration → MusicSpot.** When asked, enter your Spotify app's
+   Client ID and Client Secret (you can reuse the app from the core Spotify integration), then sign in.
+4. Optional, to see what it polls: add to `configuration.yaml`
+   ```yaml
+   logger:
+     logs:
+       custom_components.musicspot: debug
+   ```
+
 ## Known limitations (Spotify Web API)
 - No true "play next": tracks can only be added to the end of the queue, and the queue can't be reordered.
 - Development-mode Spotify apps allow at most 5 users.
