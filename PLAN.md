@@ -123,7 +123,17 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [ ] P7.3 Translations (en, nl)
 - [ ] P7.4 GitHub Actions: `hassfest` + HACS validation; ESPHome config compile check
 - [ ] P7.5 README: setup (Spotify app, HACS install, flashing), limits, screenshots
-- [ ] P7.6 First tagged release
+- [ ] P7.6 First tagged release (after the UI polish block below)
+
+### UI polish (do before P7.6)
+The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol stay untouched.
+- [ ] P7.7 Design mockups first: clickable 480×480 HTML mockups of all screens, with the panel's colour/font limits; iterate there, not by reflashing
+- [ ] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles
+- [ ] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls)
+- [ ] P7.10 Design system: type scale, 8 px grid, dark palette with one accent, pressed/disabled states, wall-panel touch targets; Now Playing layout with more room for art
+- [ ] P7.11 Details: page transitions, loading skeleton instead of "Waiting for Home Assistant", scrolling long titles, brightness slider synced with the backlight
+- [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
+- [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
 
 ## Phase 8 — Optional: Music Assistant backend (later)
 Why: Spotify forgets idle Google Cast speakers and the Web API can't wake them (Findings 2026-10-23).
