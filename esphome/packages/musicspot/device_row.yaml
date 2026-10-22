@@ -1,0 +1,26 @@
+# Device row ${n} — update script. vars: n (1..5), idx (n - 1). Widget lives in widgets/device_row.yaml.
+
+script:
+  - id: ms_device_row_${n}_set
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_devices).size() > ${idx};
+          then:
+            - lvgl.label.update:
+                id: ms_dev_${n}_label
+                text: !lambda return id(ms_devices)[${idx}];
+            - if:
+                condition:
+                  lambda: return id(ms_active_device) == ${idx};
+                then:
+                  - lvgl.widget.update:
+                      id: ms_dev_${n}
+                      bg_color: 0x1DB954
+                else:
+                  - lvgl.widget.update:
+                      id: ms_dev_${n}
+                      bg_color: 0x161616
+            - lvgl.widget.show: ms_dev_${n}
+          else:
+            - lvgl.widget.hide: ms_dev_${n}

@@ -1,0 +1,19 @@
+# Text fonts with Western European accents (track titles, artists).
+# Icons use LVGL's built-in montserrat_* fonts, which contain the LV_SYMBOL_* glyphs.
+
+font:
+  - file: "gfonts://Roboto"
+    id: ms_font_title
+    size: 24
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto"
+    id: ms_font_body
+    size: 18
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto"
+    id: ms_font_small
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Core]

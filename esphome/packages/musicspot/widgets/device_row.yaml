@@ -1,0 +1,22 @@
+# Device row ${n} widget (used as `- button: !include`). Tap = transfer playback to this device.
+id: ms_dev_${n}
+width: 100%
+height: 50
+hidden: true
+bg_color: 0x161616
+radius: 8
+on_short_click:
+  - script.execute:
+      id: ms_send_input
+      type: device
+      arg: ""
+      value: ${n}
+widgets:
+  - label:
+      id: ms_dev_${n}_label
+      text: ""
+      width: 90%
+      align: LEFT_MID
+      long_mode: DOT
+      text_font: ms_font_body
+      text_color: 0xFFFFFF

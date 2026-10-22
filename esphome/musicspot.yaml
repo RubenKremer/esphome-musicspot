@@ -7,7 +7,6 @@ substitutions:
   name: musicspot-1
   friendly_name: MusicSpot 1
   pclk_frequency: 12MHz
-  stress_image_url: !secret musicspot_test_image_url
 
 esphome:
   name: ${name}
@@ -19,7 +18,7 @@ esphome:
 
 packages:
   hardware: !include packages/hardware/guition-esp32-s3-4848s040.yaml
-  bringup: !include packages/test/bringup.yaml
+  musicspot: !include packages/musicspot/core.yaml
 
 logger:
   level: INFO

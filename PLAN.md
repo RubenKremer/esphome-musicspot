@@ -30,7 +30,7 @@ README.md  PLAN.md  CLAUDE.md
 ```
 ESP32-4848S040 (ESPHome + LVGL)  ── screens only, no entity IDs
    ▲ API actions: show_now_playing / show_page / show_devices / set_busy
-   │ HA actions:  musicspot.tap / back / page / control / set_awake
+   │ HA event:    esphome.musicspot_input {type, arg, value} (tap/queue/back/page/device/control/awake/hello)
 Home Assistant: custom integration "musicspot"
    • config entry  = Spotify account (own OAuth, application_credentials)
    • subentry      = panel  ↔ ESPHome device
@@ -69,13 +69,13 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ## Phase 2 — Thin-client firmware (`esphome/packages/`)
 - [ ] P2.1 Screen navigation: Now Playing / Browse / Devices (tab bar or swipe)
 - [ ] P2.2 API action `show_now_playing(title, artist, album, art_url, state, position_ms, duration_ms, volume, shuffle, repeat)`
-- [ ] P2.3 Now Playing screen: 300×300 art via `online_image` (JPEG, placeholder + `on_error`), text, controls
+- [ ] P2.3 Now Playing screen: 220×220 art via `online_image` (JPEG, placeholder + `on_error`), text, controls
 - [ ] P2.4 Local progress-bar interpolation between updates
-- [ ] P2.5 API action `show_page(breadcrumb, page, pages, titles[], subtitles[], ids[], kinds[], thumbs[])`
-- [ ] P2.6 Browse screen: 6 fixed rows (64px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶
-- [ ] P2.7 API action `show_devices(names[], ids[], active_id)` + Devices screen (list/roller)
+- [ ] P2.5 API action `show_page(breadcrumb, page, pages, can_back, titles[], subtitles[], thumbs[])` (no ids: D11)
+- [ ] P2.6 Browse screen: 6 fixed rows (48px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶
+- [ ] P2.7 API action `show_devices(names[], active)` + Devices screen (5 rows + volume slider)
 - [ ] P2.8 API action `set_busy(bool)` + spinner overlay
-- [ ] P2.9 Outgoing calls: tap (slot, long_press), back, page(±1), control(cmd, value), set_awake(bool)
+- [ ] P2.9 Outgoing events `esphome.musicspot_input`: tap/queue (slot), back, page(±1), device (slot), control(cmd, value), awake, hello
       — all pass the device's own identity
 - [ ] P2.10 Fallback screens: no connection to HA / nothing playing / no devices
 - [ ] P2.11 Test everything from HA Developer Tools with fake data (no integration yet)
@@ -94,7 +94,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 ## Phase 4 — Panel subentry + Now Playing push
 - [ ] P4.1 Panel subentry: pick ESPHome device, optional default playback device
-- [ ] P4.2 Register `musicspot.*` actions; resolve caller device → panel → account
+- [ ] P4.2 Listen to `esphome.musicspot_input`; resolve event `device_id` → panel → account
 - [ ] P4.3 Image view `/api/musicspot/{panel}/art/{slot}.jpg`: signed path, Pillow resize, baseline JPEG, cache
 - [ ] P4.4 Push `show_now_playing` on state change (debounced) and on panel wake
 - [ ] P4.5 Controls: play/pause, next, prev, seek, volume, shuffle, repeat
@@ -115,7 +115,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ## Phase 6 — Devices, queue, search
 - [ ] P6.1 Device list push + transfer playback
 - [ ] P6.2 Queue view (read-only, `GET /me/player/queue`)
-- [ ] P6.3 Search: LVGL keyboard → `musicspot.search` → results as a browse page (10/page)
+- [ ] P6.3 Search: LVGL keyboard → `search` input event → results as a browse page (10/page)
 
 ## Phase 7 — Polish & release
 - [ ] P7.1 Dim/screensaver after inactivity; wake on touch (optional LD2410 presence)
@@ -140,6 +140,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D7 | P1 uses the proven `st7701s` config, not the `mipi_rgb` preset | Proposed | Lowest risk on the test unit; try the preset after P1 passes and switch if equal |
 | D8 | `touch-control-2` is dedicated to MusicSpot (reflashed as `musicspot-1`) | Agreed | Its old dashboard config lives in artemis-esphome-config, which this project must not modify |
 | D9 | Integration serves art over **plain HTTP on the LAN**, **pre-sized to the exact widget size** (no device-side `resize`), small baseline JPEGs | Proposed | Downloads + decode block the ESPHome main loop, so LVGL stutters; TLS handshake and resizing add most of the cost (P1.5) |
+| D10 | Panel input goes to HA as **events** (`esphome.musicspot_input`), not HA actions | Proposed | No "unknown action" errors before the integration exists; HA adds `device_id`, so no device identity in firmware. Verify `device_id` in P2.11 |
+| D11 | Panel sends **slot numbers**, never Spotify ids; the integration keeps the ids per panel page | Proposed | Keeps firmware generic and payloads small; protocol in `docs/panel-protocol.md` |
 
 ## Findings
 

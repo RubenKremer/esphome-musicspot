@@ -1,0 +1,656 @@
+# MusicSpot thin client — screens, API actions (inbound) and input events (outbound).
+#
+# The device holds no Spotify logic and no Home Assistant entity IDs:
+#   inbound:  the integration calls the API actions below (esphome.<device>_show_now_playing, ...)
+#   outbound: every touch is fired as HA event `esphome.musicspot_input` {type, arg, value}
+# Requires the hardware package ids: my_display, my_touchscreen, display_backlight.
+
+packages:
+  fonts: !include fonts.yaml
+  browse_row_1: !include { file: browse_row.yaml, vars: { n: 1, idx: 0 } }
+  browse_row_2: !include { file: browse_row.yaml, vars: { n: 2, idx: 1 } }
+  browse_row_3: !include { file: browse_row.yaml, vars: { n: 3, idx: 2 } }
+  browse_row_4: !include { file: browse_row.yaml, vars: { n: 4, idx: 3 } }
+  browse_row_5: !include { file: browse_row.yaml, vars: { n: 5, idx: 4 } }
+  browse_row_6: !include { file: browse_row.yaml, vars: { n: 6, idx: 5 } }
+  device_row_1: !include { file: device_row.yaml, vars: { n: 1, idx: 0 } }
+  device_row_2: !include { file: device_row.yaml, vars: { n: 2, idx: 1 } }
+  device_row_3: !include { file: device_row.yaml, vars: { n: 3, idx: 2 } }
+  device_row_4: !include { file: device_row.yaml, vars: { n: 4, idx: 3 } }
+  device_row_5: !include { file: device_row.yaml, vars: { n: 5, idx: 4 } }
+
+# -------------------------------------------
+# State
+# -------------------------------------------
+globals:
+  - id: ms_playing
+    type: bool
+    initial_value: "false"
+  - id: ms_pos_ms
+    type: int
+    initial_value: "0"
+  - id: ms_dur_ms
+    type: int
+    initial_value: "0"
+  - id: ms_pos_at
+    type: uint32_t
+    initial_value: "0"
+  - id: ms_seeking
+    type: bool
+    initial_value: "false"
+  - id: ms_art_url
+    type: std::string
+    initial_value: '""'
+  - id: ms_titles
+    type: std::vector<std::string>
+  - id: ms_subtitles
+    type: std::vector<std::string>
+  - id: ms_thumbs
+    type: std::vector<std::string>
+  - id: ms_devices
+    type: std::vector<std::string>
+  - id: ms_active_device
+    type: int
+    initial_value: "-1"
+  - id: ms_awake
+    type: bool
+    initial_value: "true"
+
+http_request:
+  verify_ssl: false
+  timeout: 10s
+
+image:
+  - platform: online_image
+    id: ms_art
+    url: "http://localhost/musicspot-none.jpg"
+    format: JPEG
+    type: RGB565
+    resize: 220x220
+    on_download_finished:
+      - lvgl.image.update:
+          id: ms_art_img
+          src: ms_art
+      - lvgl.widget.show: ms_art_img
+    on_error:
+      - lvgl.widget.hide: ms_art_img
+
+# -------------------------------------------
+# Outbound: input events to Home Assistant
+# -------------------------------------------
+script:
+  # type: tap | queue | back | page | device | control | awake | hello
+  # arg:  control command (play_pause, next, previous, shuffle, repeat, volume, seek) or ""
+  # value: slot number (1-based), page delta, volume %, seek position ms, awake 0/1
+  - id: ms_send_input
+    mode: queued
+    parameters:
+      type: string
+      arg: string
+      value: int
+    then:
+      - homeassistant.event:
+          event: esphome.musicspot_input
+          data:
+            type: !lambda return type;
+            arg: !lambda return arg;
+            value: !lambda return to_string(value);
+
+  - id: ms_set_awake
+    parameters:
+      awake: bool
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_awake) != awake;
+          then:
+            - lambda: id(ms_awake) = awake;
+            - script.execute:
+                id: ms_send_input
+                type: awake
+                arg: ""
+                value: !lambda return awake ? 1 : 0;
+
+  - id: ms_refresh_browse_rows
+    then:
+      - script.execute: ms_browse_row_1_set
+      - script.execute: ms_browse_row_2_set
+      - script.execute: ms_browse_row_3_set
+      - script.execute: ms_browse_row_4_set
+      - script.execute: ms_browse_row_5_set
+      - script.execute: ms_browse_row_6_set
+
+  - id: ms_refresh_device_rows
+    then:
+      - script.execute: ms_device_row_1_set
+      - script.execute: ms_device_row_2_set
+      - script.execute: ms_device_row_3_set
+      - script.execute: ms_device_row_4_set
+      - script.execute: ms_device_row_5_set
+
+touchscreen:
+  - id: !extend my_touchscreen
+    on_touch:
+      - script.execute:
+          id: ms_set_awake
+          awake: true
+
+# -------------------------------------------
+# Inbound: API actions called by the integration
+# -------------------------------------------
+api:
+  on_client_connected:
+    - lvgl.widget.hide: ms_offline
+    - script.execute:
+        id: ms_send_input
+        type: hello
+        arg: ""
+        value: 0
+  on_client_disconnected:
+    - lvgl.widget.show: ms_offline
+
+  actions:
+    # state: playing | paused | idle ; repeat: off | context | track
+    - action: show_now_playing
+      variables:
+        title: string
+        artist: string
+        album: string
+        art_url: string
+        state: string
+        position_ms: int
+        duration_ms: int
+        volume: int
+        shuffle: bool
+        repeat: string
+      then:
+        - lambda: |-
+            id(ms_playing) = (state == "playing");
+            id(ms_pos_ms) = position_ms;
+            id(ms_dur_ms) = duration_ms;
+            id(ms_pos_at) = millis();
+        - lvgl.label.update:
+            id: ms_np_title
+            text: !lambda |-
+              return (state == "idle" || title.empty()) ? std::string("Nothing playing") : title;
+        - lvgl.label.update:
+            id: ms_np_artist
+            text: !lambda |-
+              if (state == "idle") return std::string("Pick something in Browse");
+              return album.empty() ? artist : artist + " \xE2\x80\xA2 " + album;
+        - lvgl.label.update:
+            id: ms_btn_play_label
+            text: !lambda |-
+              return std::string(state == "playing" ? "" : "");
+        - lvgl.label.update:
+            id: ms_btn_shuffle_label
+            text_color: !lambda return shuffle ? lv_color_hex(0x1DB954) : lv_color_hex(0x9A9A9A);
+        - lvgl.label.update:
+            id: ms_btn_repeat_label
+            text: !lambda |-
+              return std::string(repeat == "track" ? " 1" : "");
+            text_color: !lambda |-
+              return repeat == "off" ? lv_color_hex(0x9A9A9A) : lv_color_hex(0x1DB954);
+        - lvgl.slider.update:
+            id: ms_volume
+            value: !lambda return volume;
+        - if:
+            condition:
+              lambda: return art_url != id(ms_art_url);
+            then:
+              - lambda: id(ms_art_url) = art_url;
+              - if:
+                  condition:
+                    lambda: return art_url.empty();
+                  then:
+                    - lvgl.widget.hide: ms_art_img
+                  else:
+                    - online_image.set_url:
+                        id: ms_art
+                        url: !lambda return art_url;
+
+    - action: show_page
+      variables:
+        breadcrumb: string
+        page: int
+        pages: int
+        can_back: bool
+        titles: string[]
+        subtitles: string[]
+        thumbs: string[]
+      then:
+        - lambda: |-
+            id(ms_titles) = titles;
+            id(ms_subtitles) = subtitles;
+            id(ms_thumbs) = thumbs;
+        - lvgl.label.update:
+            id: ms_browse_title
+            text: !lambda return breadcrumb;
+        - lvgl.label.update:
+            id: ms_browse_pager
+            text: !lambda |-
+              return pages > 1 ? str_sprintf("%d/%d", page, pages) : std::string("");
+        - lvgl.label.update:
+            id: ms_browse_empty
+            text: !lambda |-
+              return titles.empty() ? std::string("Nothing here") : std::string("");
+        - lvgl.widget.update:
+            id: ms_browse_back
+            state:
+              disabled: !lambda return !can_back;
+        - lvgl.widget.update:
+            id: ms_browse_prev
+            state:
+              disabled: !lambda return page <= 1;
+        - lvgl.widget.update:
+            id: ms_browse_next
+            state:
+              disabled: !lambda return page >= pages;
+        - script.execute: ms_refresh_browse_rows
+
+    - action: show_devices
+      variables:
+        names: string[]
+        active: int
+      then:
+        - lambda: |-
+            id(ms_devices) = names;
+            id(ms_active_device) = active;
+        - lvgl.label.update:
+            id: ms_devices_empty
+            text: !lambda |-
+              return names.empty() ? std::string("No devices found.\nOpen Spotify on a speaker, phone or computer.") : std::string("");
+        - script.execute: ms_refresh_device_rows
+
+    - action: set_busy
+      variables:
+        busy: bool
+      then:
+        - if:
+            condition:
+              lambda: return busy;
+            then:
+              - lvgl.widget.show: ms_busy
+            else:
+              - lvgl.widget.hide: ms_busy
+
+# -------------------------------------------
+# Progress bar: interpolate locally between updates
+# -------------------------------------------
+interval:
+  - interval: 500ms
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_dur_ms) > 0;
+          then:
+            - lvgl.label.update:
+                id: ms_np_elapsed
+                text: !lambda |-
+                  int32_t pos = id(ms_pos_ms);
+                  if (id(ms_playing)) pos += millis() - id(ms_pos_at);
+                  if (pos > id(ms_dur_ms)) pos = id(ms_dur_ms);
+                  int s = pos / 1000;
+                  return str_sprintf("%d:%02d", s / 60, s % 60);
+            - lvgl.label.update:
+                id: ms_np_duration
+                text: !lambda |-
+                  int s = id(ms_dur_ms) / 1000;
+                  return str_sprintf("%d:%02d", s / 60, s % 60);
+            - if:
+                condition:
+                  lambda: return !id(ms_seeking);
+                then:
+                  - lvgl.slider.update:
+                      id: ms_progress
+                      value: !lambda |-
+                        int32_t pos = id(ms_pos_ms);
+                        if (id(ms_playing)) pos += millis() - id(ms_pos_at);
+                        if (pos > id(ms_dur_ms)) pos = id(ms_dur_ms);
+                        return (int) ((int64_t) pos * 1000 / id(ms_dur_ms));
+
+# -------------------------------------------
+# Screens
+# -------------------------------------------
+lvgl:
+  displays:
+    - my_display
+  touchscreens:
+    - my_touchscreen
+  on_idle:
+    timeout: 60s
+    then:
+      - script.execute:
+          id: ms_set_awake
+          awake: false
+
+  top_layer:
+    widgets:
+      # Bottom navigation bar
+      - obj:
+          id: ms_navbar
+          align: BOTTOM_MID
+          width: 100%
+          height: 64
+          bg_color: 0x101010
+          border_width: 0
+          radius: 0
+          pad_all: 6
+          layout:
+            type: flex
+            flex_flow: ROW
+            flex_align_main: SPACE_EVENLY
+            flex_align_cross: CENTER
+          widgets:
+            - button:
+                width: 140
+                height: 52
+                bg_color: 0x101010
+                on_click:
+                  - lvgl.page.show: ms_page_now
+                widgets:
+                  - label: { text: "", align: CENTER, text_font: montserrat_28 }
+            - button:
+                width: 140
+                height: 52
+                bg_color: 0x101010
+                on_click:
+                  - lvgl.page.show: ms_page_browse
+                widgets:
+                  - label: { text: "", align: CENTER, text_font: montserrat_28 }
+            - button:
+                width: 140
+                height: 52
+                bg_color: 0x101010
+                on_click:
+                  - lvgl.page.show: ms_page_devices
+                widgets:
+                  - label: { text: "", align: CENTER, text_font: montserrat_28 }
+      # Busy spinner (set_busy)
+      - spinner:
+          id: ms_busy
+          hidden: true
+          align: CENTER
+          width: 80
+          height: 80
+          spin_time: 1s
+          arc_length: 90deg
+      # Shown while Home Assistant is not connected
+      - label:
+          id: ms_offline
+          align: TOP_MID
+          y: 6
+          text: "Not connected to Home Assistant"
+          text_font: ms_font_small
+          text_color: 0xFFFFFF
+          bg_color: 0xB00020
+          bg_opa: COVER
+          pad_all: 6
+          radius: 6
+
+  pages:
+    # ---------------- Now Playing ----------------
+    - id: ms_page_now
+      bg_color: 0x000000
+      scrollable: false
+      widgets:
+        - obj:
+            width: 100%
+            height: 416
+            align: TOP_MID
+            bg_opa: TRANSP
+            border_width: 0
+            pad_all: 10
+            pad_row: 6
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+              flex_align_cross: CENTER
+            widgets:
+              - obj:
+                  width: 220
+                  height: 220
+                  bg_color: 0x161616
+                  border_width: 0
+                  radius: 8
+                  pad_all: 0
+                  scrollable: false
+                  widgets:
+                    - label: { text: "", align: CENTER, text_font: montserrat_48, text_color: 0x3A3A3A }
+                    - image:
+                        id: ms_art_img
+                        src: ms_art
+                        align: CENTER
+                        hidden: true
+              - label:
+                  id: ms_np_title
+                  text: "Nothing playing"
+                  width: 100%
+                  long_mode: DOT
+                  text_align: CENTER
+                  text_font: ms_font_title
+                  text_color: 0xFFFFFF
+              - label:
+                  id: ms_np_artist
+                  text: "Waiting for Home Assistant"
+                  width: 100%
+                  long_mode: DOT
+                  text_align: CENTER
+                  text_font: ms_font_body
+                  text_color: 0x9A9A9A
+              - slider:
+                  id: ms_progress
+                  width: 90%
+                  height: 6
+                  min_value: 0
+                  max_value: 1000
+                  value: 0
+                  on_press:
+                    - lambda: id(ms_seeking) = true;
+                  on_release:
+                    - lambda: id(ms_seeking) = false;
+                    - script.execute:
+                        id: ms_send_input
+                        type: control
+                        arg: seek
+                        value: !lambda return (int) ((int64_t) x * id(ms_dur_ms) / 1000);
+              - obj:
+                  width: 90%
+                  height: 20
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  widgets:
+                    - label: { id: ms_np_elapsed, text: "", align: LEFT_MID, text_font: ms_font_small, text_color: 0x9A9A9A }
+                    - label: { id: ms_np_duration, text: "", align: RIGHT_MID, text_font: ms_font_small, text_color: 0x9A9A9A }
+              - obj:
+                  width: 100%
+                  height: 64
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_main: SPACE_EVENLY
+                    flex_align_cross: CENTER
+                  widgets:
+                    - button:
+                        width: 56
+                        height: 56
+                        bg_opa: TRANSP
+                        shadow_width: 0
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: control, arg: shuffle, value: 0 }
+                        widgets:
+                          - label: { id: ms_btn_shuffle_label, text: "", align: CENTER, text_font: montserrat_20, text_color: 0x9A9A9A }
+                    - button:
+                        width: 64
+                        height: 64
+                        bg_opa: TRANSP
+                        shadow_width: 0
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: control, arg: previous, value: 0 }
+                        widgets:
+                          - label: { text: "", align: CENTER, text_font: montserrat_28 }
+                    - button:
+                        width: 72
+                        height: 72
+                        radius: 36
+                        bg_color: 0xFFFFFF
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: control, arg: play_pause, value: 0 }
+                        widgets:
+                          - label: { id: ms_btn_play_label, text: "", align: CENTER, text_font: montserrat_28, text_color: 0x000000 }
+                    - button:
+                        width: 64
+                        height: 64
+                        bg_opa: TRANSP
+                        shadow_width: 0
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: control, arg: next, value: 0 }
+                        widgets:
+                          - label: { text: "", align: CENTER, text_font: montserrat_28 }
+                    - button:
+                        width: 56
+                        height: 56
+                        bg_opa: TRANSP
+                        shadow_width: 0
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: control, arg: repeat, value: 0 }
+                        widgets:
+                          - label: { id: ms_btn_repeat_label, text: "", align: CENTER, text_font: montserrat_20, text_color: 0x9A9A9A }
+
+    # ---------------- Browse ----------------
+    - id: ms_page_browse
+      bg_color: 0x000000
+      scrollable: false
+      widgets:
+        - obj:
+            width: 100%
+            height: 416
+            align: TOP_MID
+            bg_opa: TRANSP
+            border_width: 0
+            pad_all: 8
+            pad_row: 4
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+            widgets:
+              - obj:
+                  width: 100%
+                  height: 48
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  pad_column: 6
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                  widgets:
+                    - button:
+                        id: ms_browse_back
+                        width: 48
+                        height: 44
+                        bg_color: 0x222222
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: back, arg: "", value: 0 }
+                        widgets:
+                          - label: { text: "", align: CENTER, text_font: montserrat_20 }
+                    - label:
+                        id: ms_browse_title
+                        text: "Library"
+                        flex_grow: 1
+                        long_mode: DOT
+                        text_font: ms_font_title
+                        text_color: 0xFFFFFF
+                    - button:
+                        id: ms_browse_prev
+                        width: 44
+                        height: 44
+                        bg_color: 0x222222
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: page, arg: "", value: -1 }
+                        widgets:
+                          - label: { text: "", align: CENTER, text_font: montserrat_20 }
+                    - label:
+                        id: ms_browse_pager
+                        text: ""
+                        text_font: ms_font_small
+                        text_color: 0x9A9A9A
+                    - button:
+                        id: ms_browse_next
+                        width: 44
+                        height: 44
+                        bg_color: 0x222222
+                        on_click:
+                          - script.execute: { id: ms_send_input, type: page, arg: "", value: 1 }
+                        widgets:
+                          - label: { text: "", align: CENTER, text_font: montserrat_20 }
+              - label:
+                  id: ms_browse_empty
+                  text: "Waiting for Home Assistant"
+                  text_font: ms_font_body
+                  text_color: 0x9A9A9A
+              - button: !include { file: widgets/browse_row.yaml, vars: { n: 1 } }
+              - button: !include { file: widgets/browse_row.yaml, vars: { n: 2 } }
+              - button: !include { file: widgets/browse_row.yaml, vars: { n: 3 } }
+              - button: !include { file: widgets/browse_row.yaml, vars: { n: 4 } }
+              - button: !include { file: widgets/browse_row.yaml, vars: { n: 5 } }
+              - button: !include { file: widgets/browse_row.yaml, vars: { n: 6 } }
+
+    # ---------------- Devices + volume ----------------
+    - id: ms_page_devices
+      bg_color: 0x000000
+      scrollable: false
+      widgets:
+        - obj:
+            width: 100%
+            height: 416
+            align: TOP_MID
+            bg_opa: TRANSP
+            border_width: 0
+            pad_all: 10
+            pad_row: 6
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+            widgets:
+              - label:
+                  text: "Play on"
+                  text_font: ms_font_title
+                  text_color: 0xFFFFFF
+              - label:
+                  id: ms_devices_empty
+                  text: "Waiting for Home Assistant"
+                  width: 100%
+                  long_mode: WRAP
+                  text_font: ms_font_body
+                  text_color: 0x9A9A9A
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 1 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 2 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 3 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 4 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 5 } }
+              - label:
+                  text: "  Volume"
+                  text_font: montserrat_20
+                  text_color: 0x9A9A9A
+              - slider:
+                  id: ms_volume
+                  width: 90%
+                  min_value: 0
+                  max_value: 100
+                  value: 50
+                  on_release:
+                    - script.execute:
+                        id: ms_send_input
+                        type: control
+                        arg: volume
+                        value: !lambda return (int) x;

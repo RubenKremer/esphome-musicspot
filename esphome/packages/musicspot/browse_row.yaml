@@ -1,0 +1,44 @@
+# Browse row ${n} — thumbnail image + update script.
+# vars: n (1..6), idx (n - 1). Widget lives in widgets/browse_row.yaml.
+
+image:
+  - platform: online_image
+    id: ms_thumb_${n}
+    url: "http://localhost/musicspot-none.jpg"
+    format: JPEG
+    type: RGB565
+    resize: 48x48
+    on_download_finished:
+      - lvgl.image.update:
+          id: ms_row_${n}_thumb
+          src: ms_thumb_${n}
+      - lvgl.widget.show: ms_row_${n}_thumb
+    on_error:
+      - lvgl.widget.hide: ms_row_${n}_thumb
+
+script:
+  - id: ms_browse_row_${n}_set
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_titles).size() > ${idx};
+          then:
+            - lvgl.label.update:
+                id: ms_row_${n}_title
+                text: !lambda return id(ms_titles)[${idx}];
+            - lvgl.label.update:
+                id: ms_row_${n}_subtitle
+                text: !lambda |-
+                  return id(ms_subtitles).size() > ${idx} ? id(ms_subtitles)[${idx}] : std::string("");
+            - lvgl.widget.show: ms_row_${n}
+            - if:
+                condition:
+                  lambda: return id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
+                then:
+                  - online_image.set_url:
+                      id: ms_thumb_${n}
+                      url: !lambda return id(ms_thumbs)[${idx}];
+                else:
+                  - lvgl.widget.hide: ms_row_${n}_thumb
+          else:
+            - lvgl.widget.hide: ms_row_${n}
