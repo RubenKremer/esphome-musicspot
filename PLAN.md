@@ -68,8 +68,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 ## Phase 2 — Thin-client firmware (`esphome/packages/`)
 - [x] P2.1 Screen navigation: Now Playing / Browse / Devices (tab bar or swipe) — verified on device via Developer Tools, 2026-10-23
-- [ ] P2.2 API action `show_now_playing(title, artist, album, art_url, state, position_ms, duration_ms, volume, shuffle, repeat)`
-- [ ] P2.3 Now Playing screen: 220×220 art via `online_image` (JPEG, placeholder + `on_error`), text, controls
+- [x] P2.2 API action `show_now_playing(title, artist, album, art_url, state, position_ms, duration_ms, volume, shuffle, repeat)` — verified on device with real Spotify data, 2026-10-23
+- [x] P2.3 Now Playing screen: 220×220 art via `online_image` (JPEG, placeholder + `on_error`), text, controls — verified on device with real Spotify data, 2026-10-23
 - [ ] P2.4 Local progress-bar interpolation between updates
 - [x] P2.5 API action `show_page(breadcrumb, page, pages, can_back, titles[], subtitles[], thumbs[])` (no ids: D11) — verified on device via Developer Tools, 2026-10-23
 - [x] P2.6 Browse screen: 6 fixed rows (48px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶ — verified on device via Developer Tools, 2026-10-23
@@ -93,12 +93,12 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 **Done when:** account adds via UI, playback state visible in logs, survives HA restart.
 
 ## Phase 4 — Panel subentry + Now Playing push
-- [ ] P4.1 Panel subentry: pick ESPHome device, optional default playback device
-- [ ] P4.2 Listen to `esphome.musicspot_input`; resolve event `device_id` → panel → account
-- [ ] P4.3 Image view `/api/musicspot/art/{token}/{name}`: per-panel random token (D13), Pillow resize, baseline JPEG, cache
-- [ ] P4.4 Push `show_now_playing` on state change (debounced) and on panel wake
-- [ ] P4.5 Controls: play/pause, next, prev, seek, volume, shuffle, repeat
-- [ ] P4.6 `set_awake` switches coordinator between fast and slow polling
+- [x] P4.1 Panel subentry: pick ESPHome device, optional default playback device — verified on device with real Spotify data, 2026-10-23
+- [x] P4.2 Listen to `esphome.musicspot_input`; resolve event `device_id` → panel → account — verified on device with real Spotify data, 2026-10-23
+- [x] P4.3 Image view `/api/musicspot/art/{token}/{name}`: per-panel random token (D13), Pillow resize, baseline JPEG, cache — verified on device with real Spotify data, 2026-10-23
+- [x] P4.4 Push `show_now_playing` on state change (debounced) and on panel wake — verified on device with real Spotify data, 2026-10-23
+- [x] P4.5 Controls: play/pause, next, prev, seek, volume, shuffle, repeat — verified on device with real Spotify data, 2026-10-23
+- [x] P4.6 `set_awake` switches coordinator between fast and slow polling — verified on device with real Spotify data, 2026-10-23
 
 **Done when:** panel follows phone playback within ~5 s, art correct, all controls work.
 
@@ -145,6 +145,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D12 | Own minimal Spotify client (`api.py`, aiohttp, no requirements) instead of `spotifyaio` | Proposed | Only the endpoints we use, written against the Feb-2026 API; Spotify changes fixed here without waiting for a library release |
 | D13 | Album art served without auth via an unguessable per-panel token in the URL (new on every restart) | Proposed | ESPHome `online_image` can't send auth headers or follow HA signed paths; only public cover art is exposed |
 | D14 | Coordinator only polls while at least one panel is linked (coordinator listener) | Proposed | No panels = no Spotify quota used |
+| D15 | Remember recently seen Spotify devices per account and keep them on the Devices screen | Proposed | The Web API drops idle Google Cast devices from `/me/player/devices`, so you couldn't switch back to one. Transfer to a remembered device may still fail (404); then it is forgotten and logged |
 
 ## Findings
 
@@ -165,6 +166,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - 2026-10-22: First flash OK on `musicspot-1` (ESP32-S3 rev0.2). Boot log suggests `flash_chip: boya` under
   `esp32 > framework > advanced` to save IRAM — chip vendor may differ per unit, so keep it out of the shared hardware package.
 - 2026-10-22: Panel events arrive as `esphome.musicspot_input` with HA-added `device_id` (e.g. `awake` value `1` on touch after idle); all data values are strings.
+- 2026-10-23: P4 on device: art, next/previous, shuffle/repeat, seek and awake-based polling work. Bugs found: device list not refreshed when playback moves elsewhere (fixed: refresh on active-device change), Google Cast speaker disappears from the device list once playback leaves it (mitigated: D15). "Add panel" button showed only a + icon.
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,

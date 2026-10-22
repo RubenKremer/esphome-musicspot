@@ -85,6 +85,7 @@ class MusicSpotPanel:
         self._art_src: str | None = None
         self._art_url = ""
         self._device_ids: list[str] = []
+        self._shown_active_device: str | None = None
         self._push_lock = asyncio.Lock()
 
     # ---- lifecycle -------------------------------------------------------
@@ -108,8 +109,16 @@ class MusicSpotPanel:
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        """Push now-playing after every poll (only sent when something changed)."""
+        """Push now-playing after every poll (only sent when something changed).
+
+        Also refresh the device list when playback moved to another device,
+        e.g. from the Spotify app on a phone.
+        """
         self.hass.async_create_task(self.async_push_now_playing())
+        active = ((self.coordinator.data or {}).get("device") or {}).get("id")
+        if active != self._shown_active_device:
+            self._shown_active_device = active
+            self.hass.async_create_task(self.async_push_devices())
 
     # ---- outbound --------------------------------------------------------
 
@@ -229,18 +238,38 @@ class MusicSpotPanel:
             return ""
 
     async def async_push_devices(self) -> None:
-        """Send the Spotify Connect device list."""
+        """Send the Spotify Connect device list.
+
+        Spotify's Web API stops listing some devices (notably Google Cast speakers)
+        once they are idle, so devices seen earlier are kept and appended (D15).
+        """
         try:
-            devices = await self.coordinator.api.get_devices()
+            listed = await self.coordinator.api.get_devices()
         except SpotifyApiError as err:
             LOGGER.warning("Could not list Spotify devices: %s", err)
             return
-        devices = [d for d in devices if d.get("id")][:_MAX_DEVICES]
-        self._device_ids = [d["id"] for d in devices]
-        active = next((i for i, d in enumerate(devices) if d.get("is_active")), -1)
+        listed = [d for d in listed if d.get("id")]
+        known = self.coordinator.remember_devices(listed)
+        active_id = next((d["id"] for d in listed if d.get("is_active")), None) or (
+            ((self.coordinator.data or {}).get("device") or {}).get("id")
+        )
+
+        names = {d["id"]: d.get("name") or "?" for d in listed}
+        ids = [d["id"] for d in listed]
+        for device_id, name in known.items():
+            if device_id not in names:
+                names[device_id] = name
+                ids.append(device_id)
+        ids = ids[:_MAX_DEVICES]
+
+        self._device_ids = ids
+        self._shown_active_device = active_id
         await self._call(
             "show_devices",
-            {"names": [d.get("name", "?") for d in devices], "active": active},
+            {
+                "names": [names[i] for i in ids],
+                "active": ids.index(active_id) if active_id in ids else -1,
+            },
         )
 
     # ---- inbound ---------------------------------------------------------
@@ -320,8 +349,16 @@ class MusicSpotPanel:
         """Move playback to the device in a slot (1-based)."""
         if not 1 <= slot <= len(self._device_ids):
             return
+        device_id = self._device_ids[slot - 1]
         try:
-            await self.coordinator.api.transfer_playback(self._device_ids[slot - 1])
+            await self.coordinator.api.transfer_playback(device_id)
+        except SpotifyNotFoundError:
+            LOGGER.info(
+                "Spotify no longer offers %s; start playback on it once from the "
+                "Spotify app to make it available again",
+                self.coordinator.known_devices.get(device_id, device_id),
+            )
+            self.coordinator.forget_device(device_id)
         except SpotifyApiError as err:
             LOGGER.warning("Could not transfer playback: %s", err)
         await self._async_refresh_soon()

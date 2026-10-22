@@ -53,6 +53,30 @@ class MusicSpotCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
         self.api = api
         self._awake: set[str] = set()
         self._last_summary: str | None = None
+        # Spotify device id -> name, most recently seen first (D15).
+        self.known_devices: dict[str, str] = {}
+
+    @callback
+    def remember_devices(self, devices: list[dict[str, Any]]) -> dict[str, str]:
+        """Record devices Spotify listed; return all known devices, most recent first."""
+        for device in reversed(devices):
+            self._remember(device)
+        return self.known_devices
+
+    @callback
+    def forget_device(self, device_id: str) -> None:
+        """Drop a device Spotify no longer accepts."""
+        self.known_devices.pop(device_id, None)
+
+    def _remember(self, device: dict[str, Any]) -> None:
+        """Move a device to the front of the known list."""
+        device_id = device.get("id")
+        if not device_id:
+            return
+        self.known_devices.pop(device_id, None)
+        self.known_devices = {device_id: device.get("name") or "?", **self.known_devices}
+        if len(self.known_devices) > 10:
+            self.known_devices = dict(list(self.known_devices.items())[:10])
 
     @property
     def normal_interval(self) -> timedelta:
@@ -89,6 +113,8 @@ class MusicSpotCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             raise UpdateFailed(str(err)) from err
 
         self.update_interval = self.normal_interval
+        if data and data.get("device"):
+            self._remember(data["device"])
         self._log_change(data)
         return data
 
