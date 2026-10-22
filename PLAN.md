@@ -158,7 +158,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
   - Backlight: LEDC PWM on GPIO38 @ 100 Hz
   - Relays (some variants): GPIO40, GPIO2, GPIO1 — unused by MusicSpot; leave unconfigured
   - `online_image` already works on this unit with HA-served JPEGs over plain HTTP (`http_request`, RGB565, `resize`)
-- 2026-10-22: P1 config validates on ESPHome 2026.10.0 (Ruben's dashboard). LVGL pages reject `pad_row`; use it on a child `obj` instead.
+- 2026-10-22: P1 config validates on ESPHome 2026.10.0 (Ruben's dashboard). `pad_row`/`pad_column` belong under the `layout:` key, not on the page or widget.
 - 2026-10-22: First flash OK on `musicspot-1` (ESP32-S3 rev0.2). Boot log suggests `flash_chip: boya` under
   `esp32 > framework > advanced` to save IRAM — chip vendor may differ per unit, so keep it out of the shared hardware package.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
