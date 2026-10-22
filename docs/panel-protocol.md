@@ -41,7 +41,7 @@ device name turned into underscores. For a device named `musicspot-1`: `esphome.
 ### `show_toast`
 | Field | Type | Notes |
 |---|---|---|
-| `text` | string | Shown above the navigation bar for 2.5 s, e.g. `Queued: Out Of Me` |
+| `message` | string | Shown above the navigation bar for 2.5 s, e.g. `Queued: Out Of Me` (`text` is not allowed as an ESPHome action variable name) |
 
 ### `show_screen`
 | Field | Type | Notes |

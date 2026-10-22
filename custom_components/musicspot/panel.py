@@ -193,7 +193,7 @@ class MusicSpotPanel:
 
     async def async_toast(self, text: str) -> None:
         """Show a short message on the panel."""
-        await self._call("show_toast", {"text": text})
+        await self._call("show_toast", {"message": text})
 
     async def async_push_now_playing(self, force: bool = False) -> None:
         """Send now-playing if it changed or the panel's progress drifted."""

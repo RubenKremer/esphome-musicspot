@@ -282,11 +282,11 @@ api:
 
     - action: show_toast
       variables:
-        text: string
+        message: string
       then:
         - lvgl.label.update:
             id: ms_toast
-            text: !lambda return text;
+            text: !lambda return message;
         - lvgl.widget.show: ms_toast
         - script.execute: ms_hide_toast
 
