@@ -109,7 +109,7 @@ script:
                 id: ms_send_input
                 type: awake
                 arg: ""
-                value: !lambda return awake ? 1 : 0;
+                value: !lambda "return awake ? 1 : 0;"
 
   - id: ms_refresh_browse_rows
     then:
@@ -184,7 +184,7 @@ api:
               return std::string(state == "playing" ? "" : "");
         - lvgl.label.update:
             id: ms_btn_shuffle_label
-            text_color: !lambda return shuffle ? lv_color_hex(0x1DB954) : lv_color_hex(0x9A9A9A);
+            text_color: !lambda "return shuffle ? lv_color_hex(0x1DB954) : lv_color_hex(0x9A9A9A);"
         - lvgl.label.update:
             id: ms_btn_repeat_label
             text: !lambda |-
