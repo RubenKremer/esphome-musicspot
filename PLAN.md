@@ -56,12 +56,13 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 **Done when:** board on the desk, HA reachable, ESPHome can compile a blank config.
 
 ## Phase 1 — Board bring-up (`esphome/`)
-- [ ] P1.1 `mipi_rgb` display with `model: GUITION-4848S040`, PSRAM enabled
-- [ ] P1.2 GT911 touchscreen working (tap coordinates match screen)
-- [ ] P1.3 Backlight as `light` with brightness
-- [ ] P1.4 LVGL hello page: label + button + brightness slider
-- [ ] P1.5 Stress test: continuous `online_image` download while animating — no drift/flicker
-      (tune `pclk_frequency`, `buffer_size` if needed; record result)
+- [x] P1.1 Display working, PSRAM enabled (`st7701s` per D7; `mipi_rgb` preset still to try) — verified: unit boots and renders, 2026-10-22
+- [x] P1.2 GT911 touchscreen working (tap coordinates match screen) — verified: on-screen controls respond where tapped, 2026-10-22
+- [x] P1.3 Backlight as `light` with brightness — verified: slider dims backlight on device, 2026-10-22
+- [x] P1.4 LVGL hello page: label + button + brightness slider — verified: on device, 2026-10-22
+- [x] P1.5 Stress test: continuous `online_image` download while animating — no drift/flicker
+      (tune `pclk_frequency`, `buffer_size` if needed; record result) — verified 2026-10-22: 30 ok / 0 fail,
+      no drift/flicker, memory stable; spinner stutters during each download (see Findings, D9)
 
 **Done when:** stable screen and touch during heavy Wi-Fi traffic.
 
@@ -138,6 +139,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D6 | MIT licence | Agreed | Don't publish pre-built firmware `.bin` files (ESPHome C++ runtime is GPLv3); users compile from YAML |
 | D7 | P1 uses the proven `st7701s` config, not the `mipi_rgb` preset | Proposed | Lowest risk on the test unit; try the preset after P1 passes and switch if equal |
 | D8 | `touch-control-2` is dedicated to MusicSpot (reflashed as `musicspot-1`) | Agreed | Its old dashboard config lives in artemis-esphome-config, which this project must not modify |
+| D9 | Integration serves art over **plain HTTP on the LAN**, **pre-sized to the exact widget size** (no device-side `resize`), small baseline JPEGs | Proposed | Downloads + decode block the ESPHome main loop, so LVGL stutters; TLS handshake and resizing add most of the cost (P1.5) |
 
 ## Findings
 
@@ -155,3 +157,9 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
   - Relays (some variants): GPIO40, GPIO2, GPIO1 — unused by MusicSpot; leave unconfigured
   - `online_image` already works on this unit with HA-served JPEGs over plain HTTP (`http_request`, RGB565, `resize`)
 - 2026-10-22: P1 config validates on ESPHome 2026.10.0 (Ruben's dashboard). LVGL pages reject `pad_row`; use it on a child `obj` instead.
+- 2026-10-22: First flash OK on `musicspot-1` (ESP32-S3 rev0.2). Boot log suggests `flash_chip: boya` under
+  `esp32 > framework > advanced` to save IRAM — chip vendor may differ per unit, so keep it out of the shared hardware package.
+- 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
+  PSRAM free ~5917 KB and heap free ~149 KB, no display drift/flicker. Spinner stutters while each image downloads:
+  `online_image` runs in the main loop (first download blocked ~1.3 s, warnings of 900+ ms). Real use refreshes art
+  once per track, so a short stutter at track change is acceptable; D9 keeps it short.
