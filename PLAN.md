@@ -125,6 +125,17 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [ ] P7.5 README: setup (Spotify app, HACS install, flashing), limits, screenshots
 - [ ] P7.6 First tagged release
 
+## Phase 8 — Optional: Music Assistant backend (later)
+Why: Spotify forgets idle Google Cast speakers and the Web API can't wake them (Findings 2026-10-23).
+Music Assistant streams Spotify to Cast speakers itself, so speakers never disappear. Trade-off: playback
+started this way is not Spotify Connect, so the Spotify app doesn't see it; Now Playing must come from the
+Music Assistant player instead of the Spotify API. Same firmware and panel protocol (D11).
+- [ ] P8.1 Spike: Music Assistant (HA core integration) actions/attributes for now playing, browse, queue, play on a Cast player
+- [ ] P8.2 Second subentry/backend type: panel ↔ Music Assistant player(s) instead of a Spotify account
+- [ ] P8.3 Now Playing + controls from the Music Assistant `media_player`
+- [ ] P8.4 Browse + "play on speaker" via Music Assistant
+- [ ] P8.5 Decide: mixed mode (Spotify account, Cast speakers handed to Music Assistant) or separate panels
+
 ---
 
 ## Decisions
@@ -146,6 +157,8 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 | D13 | Album art served without auth via an unguessable per-panel token in the URL (new on every restart) | Proposed | ESPHome `online_image` can't send auth headers or follow HA signed paths; only public cover art is exposed |
 | D14 | Coordinator only polls while at least one panel is linked (coordinator listener) | Proposed | No panels = no Spotify quota used |
 | D15 | Remember recently seen Spotify devices per account and keep them on the Devices screen | Proposed | The Web API drops idle Google Cast devices from `/me/player/devices`, so you couldn't switch back to one. Transfer to a remembered device may still fail (404); then it is forgotten and logged |
+| D16 | Playlists and albums open with a **Play all** row; tracks play inside their context (playlist/album/Liked Songs) | Proposed | Since Feb 2026 Spotify only lists items of playlists you own; Play all still works for followed playlists |
+| D17 | Firmware actions `show_toast` and `show_screen` | Proposed | Feedback for queueing (no 'play next') and jumping to Now Playing after starting playback |
 
 ## Findings
 

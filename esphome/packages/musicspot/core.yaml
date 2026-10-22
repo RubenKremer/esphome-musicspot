@@ -111,6 +111,12 @@ script:
                 arg: ""
                 value: !lambda "return awake ? 1 : 0;"
 
+  - id: ms_hide_toast
+    mode: restart
+    then:
+      - delay: 2500ms
+      - lvgl.widget.hide: ms_toast
+
   - id: ms_refresh_browse_rows
     then:
       - script.execute: ms_browse_row_1_set
@@ -274,6 +280,37 @@ api:
             else:
               - lvgl.widget.hide: ms_busy
 
+    - action: show_toast
+      variables:
+        text: string
+      then:
+        - lvgl.label.update:
+            id: ms_toast
+            text: !lambda return text;
+        - lvgl.widget.show: ms_toast
+        - script.execute: ms_hide_toast
+
+    # screen: now | browse | devices
+    - action: show_screen
+      variables:
+        screen: string
+      then:
+        - if:
+            condition:
+              lambda: return screen == "now";
+            then:
+              - lvgl.page.show: ms_page_now
+        - if:
+            condition:
+              lambda: return screen == "browse";
+            then:
+              - lvgl.page.show: ms_page_browse
+        - if:
+            condition:
+              lambda: return screen == "devices";
+            then:
+              - lvgl.page.show: ms_page_devices
+
 # -------------------------------------------
 # Progress bar: interpolate locally between updates
 # -------------------------------------------
@@ -375,6 +412,22 @@ lvgl:
           height: 80
           spin_time: 1s
           arc_length: 90deg
+      # Short messages (show_toast), just above the navigation bar
+      - label:
+          id: ms_toast
+          hidden: true
+          align: BOTTOM_MID
+          y: -76
+          width: 90%
+          long_mode: DOT
+          text_align: CENTER
+          text: ""
+          text_font: ms_font_body
+          text_color: 0xFFFFFF
+          bg_color: 0x2A2A2A
+          bg_opa: COVER
+          pad_all: 10
+          radius: 8
       # Shown while Home Assistant is not connected
       - label:
           id: ms_offline

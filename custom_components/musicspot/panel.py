@@ -19,8 +19,10 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .api import SpotifyApiError, SpotifyNotFoundError
 from .art import ArtStore
+from .browse import PAGE_SIZE, Browser, Row
 from .const import (
     ART_SIZE_NOW,
+    ART_SIZE_THUMB,
     CONF_ART_BASE_URL,
     CONF_DEFAULT_DEVICE,
     CONF_DEVICE_ID,
@@ -90,6 +92,10 @@ class MusicSpotPanel:
         self._shown_active_device: str | None = None
         self._seek_grace_until = 0.0
         self._push_lock = asyncio.Lock()
+        self._browser = Browser(
+            coordinator.api, coordinator.config_entry.unique_id or ""
+        )
+        self._browse_lock = asyncio.Lock()
 
     # ---- lifecycle -------------------------------------------------------
 
@@ -142,6 +148,52 @@ class MusicSpotPanel:
         """Push everything (panel connected or woke up)."""
         await self.async_push_now_playing(force=True)
         await self.async_push_devices()
+        await self.async_push_browse()
+
+    async def async_push_browse(self) -> None:
+        """Load the current browse page and send it with its thumbnails."""
+        async with self._browse_lock:
+            await self._call("set_busy", {"busy": True})
+            try:
+                page = await self._browser.async_load()
+            except SpotifyApiError as err:
+                LOGGER.warning("Could not load %s: %s", self._browser.node.title, err)
+                await self._call("set_busy", {"busy": False})
+                await self.async_toast("Spotify didn't answer, try again")
+                return
+            thumbs = await asyncio.gather(
+                *(self._thumb_url(i, row) for i, row in enumerate(page.rows, 1))
+            )
+            await self._call(
+                "show_page",
+                {
+                    "breadcrumb": page.title,
+                    "page": page.page,
+                    "pages": page.pages,
+                    "can_back": page.can_back,
+                    "titles": [row.title for row in page.rows],
+                    "subtitles": [row.subtitle for row in page.rows],
+                    "thumbs": list(thumbs),
+                },
+            )
+            await self._call("set_busy", {"busy": False})
+
+    async def _thumb_url(self, slot: int, row: Row) -> str:
+        """Prepare a row thumbnail and return its panel URL ('' for none)."""
+        base = self._base_url()
+        if not row.image or not base:
+            return ""
+        name = f"t{slot}.jpg"
+        version = await self._art_store.async_set_from_url(
+            self._token, name, row.image, ART_SIZE_THUMB
+        )
+        if not version:
+            return ""
+        return f"{base}/api/musicspot/art/{self._token}/{name}?v={version}"
+
+    async def async_toast(self, text: str) -> None:
+        """Show a short message on the panel."""
+        await self._call("show_toast", {"text": text})
 
     async def async_push_now_playing(self, force: bool = False) -> None:
         """Send now-playing if it changed or the panel's progress drifted."""
@@ -292,8 +344,76 @@ class MusicSpotPanel:
             await self._async_control(arg, value)
         elif type_ == "device":
             await self._async_transfer(value)
+        elif type_ == "tap":
+            await self._async_tap(value)
+        elif type_ == "queue":
+            await self._async_queue(value)
+        elif type_ == "back":
+            if self._browser.back():
+                await self.async_push_browse()
+        elif type_ == "page":
+            self._browser.turn_page(1 if value > 0 else -1)
+            await self.async_push_browse()
         else:
             LOGGER.debug("Input type %s is not handled yet", type_)
+
+    def _row(self, slot: int) -> Row | None:
+        """Row behind a 1-based slot of the page the panel shows."""
+        if 1 <= slot <= min(PAGE_SIZE, len(self._browser.rows)):
+            return self._browser.rows[slot - 1]
+        return None
+
+    async def _async_tap(self, slot: int) -> None:
+        """Open a folder, or play a row (in its context when possible)."""
+        row = self._row(slot)
+        if row is None:
+            return
+        if row.open is not None:
+            self._browser.open(row.open)
+            await self.async_push_browse()
+            return
+        try:
+            if row.play_all:
+                await self._async_play(context_uri=row.context_uri)
+            elif row.context_uri:
+                try:
+                    await self._async_play(context_uri=row.context_uri, offset_uri=row.uri)
+                except SpotifyNotFoundError:
+                    raise
+                except SpotifyApiError:
+                    # e.g. the track is no longer in that context
+                    await self._async_play(uris=[row.uri])
+            else:
+                await self._async_play(uris=[row.uri])
+        except SpotifyNotFoundError:
+            await self.async_toast("No active speaker - pick one under Play on")
+            await self._call("show_screen", {"screen": "devices"})
+            return
+        except SpotifyApiError as err:
+            LOGGER.warning("Could not play %s: %s", row.title, err)
+            await self.async_toast("Spotify refused to play this")
+            return
+        await self._call("show_screen", {"screen": "now"})
+        await self._async_refresh_soon()
+
+    async def _async_queue(self, slot: int) -> None:
+        """Add a track to the queue (Spotify has no 'play next')."""
+        row = self._row(slot)
+        if row is None:
+            return
+        if not row.uri:
+            await self.async_toast("Only songs can be added to the queue")
+            return
+        try:
+            await self.coordinator.api.add_to_queue(row.uri)
+        except SpotifyNotFoundError:
+            await self.async_toast("Start playback first, then queue songs")
+            return
+        except SpotifyApiError as err:
+            LOGGER.warning("Could not queue %s: %s", row.title, err)
+            await self.async_toast("Spotify refused to queue this")
+            return
+        await self.async_toast(f"Queued: {row.title}")
 
     async def _async_control(self, command: str, value: int) -> None:
         """Run a transport/volume command, then refresh."""
@@ -334,15 +454,18 @@ class MusicSpotPanel:
             LOGGER.warning("Spotify rejected %s: %s", command, err)
         await self._async_refresh_soon()
 
-    async def _async_play(self) -> None:
-        """Resume; fall back to the default device when nothing is active."""
+    async def _async_play(self, **kwargs: Any) -> None:
+        """Play/resume; when nothing is active, use the default device if configured."""
         try:
-            await self.coordinator.api.play()
+            await self.coordinator.api.play(**kwargs)
         except SpotifyNotFoundError:
             device_id = await self._default_device_id()
             if device_id is None:
                 raise
-            await self.coordinator.api.transfer_playback(device_id, play=True)
+            if kwargs:
+                await self.coordinator.api.play(device_id=device_id, **kwargs)
+            else:
+                await self.coordinator.api.transfer_playback(device_id, play=True)
 
     async def _default_device_id(self) -> str | None:
         """Look up the configured default device by name."""

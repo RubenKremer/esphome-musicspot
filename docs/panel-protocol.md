@@ -38,6 +38,16 @@ device name turned into underscores. For a device named `musicspot-1`: `esphome.
 |---|---|
 | `busy` | bool |
 
+### `show_toast`
+| Field | Type | Notes |
+|---|---|---|
+| `text` | string | Shown above the navigation bar for 2.5 s, e.g. `Queued: Out Of Me` |
+
+### `show_screen`
+| Field | Type | Notes |
+|---|---|---|
+| `screen` | string | `now` \| `browse` \| `devices` — e.g. jump to Now Playing after starting playback |
+
 ## Outbound: input events (panel → integration)
 
 Every touch fires the Home Assistant event **`esphome.musicspot_input`**. All data values are strings;
