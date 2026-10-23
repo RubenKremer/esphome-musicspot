@@ -130,9 +130,9 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.7 Design mockups first: clickable 480×480 HTML mockups of all screens, with the panel's colour/font limits; iterate there, not by reflashing
       (baseline of the current UI: `design/mockups/current-ui.html`, 2026-10-23)
       (design C mockup: `design/mockups/design-c.html` (Now Playing, Library, Albums))
-- [ ] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles
+- [x] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles — verified on device: theme.yaml drives all screens, 2026-10-24
       (draft: `esphome/packages/musicspot/theme.yaml`, not included yet)
-- [ ] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls)
+- [x] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls) — verified on device: design C SVG icons (D28), 2026-10-24
       (superseded by D28: design SVG icons in `esphome/packages/musicspot/icons/`)
 - [ ] P7.10 Design system: type scale, 8 px grid, dark palette with one accent, pressed/disabled states, wall-panel touch targets; Now Playing layout with more room for art
       (direction chosen: design set C, D18–D22)
@@ -221,6 +221,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-24: Albums reboot (and later the Now Playing cover) = abort in `operator new` creating `runtime_image::JpegDecoder` from `online_image::update()`: the internal heap ran out, not PSRAM. ESPHome's psram setup only enables capability-based PSRAM allocation, so `new` uses internal RAM. Fix in the board package: `CONFIG_SPIRAM_USE_MALLOC` (> 4 KB to PSRAM, 48 KB internal reserve) and Wi-Fi/LwIP buffers in PSRAM. Debug sensors (reset reason, heap free/largest block, PSRAM) added to verify.
 - 2026-10-24: PSRAM malloc fix confirmed: Albums no longer reboots. Photo showed a 3-column grid (6 of 8 albums), a gap in the source selector and clipped artist lines: LVGL's default theme adds gaps between flex items unless `pad_row`/`pad_column` are set, and 4×84 + 3×10 px filled the 366 px exactly. All flex layouts now set both gaps explicitly; grid gap 8 px, tiles 132 px tall.
 - 2026-10-24: Panel feels noticeably snappier after the PSRAM malloc change (clean build): more internal RAM free, Wi-Fi/LwIP buffers in PSRAM, art over plain HTTP, images decoded one at a time.
+- 2026-10-24: Source selector (v1.1) and Albums 4×2 grid confirmed on device.
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
