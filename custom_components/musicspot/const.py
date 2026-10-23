@@ -37,5 +37,5 @@ ART_SIZE_THUMB = 40  # list rows (D26)
 ART_SIZE_TILE = 84  # Albums grid tiles
 
 # Poll fast only while a panel is awake; development-mode quota is shared per app.
-UPDATE_INTERVAL_SLOW = timedelta(seconds=30)
+UPDATE_INTERVAL_SLOW = timedelta(seconds=12)  # idle clock still feels live (Ruben, 2026-10-24)
 UPDATE_INTERVAL_FAST = timedelta(seconds=3)
