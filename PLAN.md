@@ -187,7 +187,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D26 | Library lists get 40 px covers (deviation from design C); Albums tab is a 4×2 cover grid | Agreed (Ruben, 2026-10-23) | Costs up to 6–8 small image downloads per page |
 | D27 | No repeat control on the panel | Agreed (Ruben, 2026-10-23) | Design C has no place for it; use the Spotify app |
 | D28 | Icons are design C's own SVGs (`esphome/packages/musicspot/icons/`), rendered as recoloured ESPHome images, instead of an MDI font | Proposed | Pixel-faithful to the design; only ~15 icons needed |
-| D29 | Sleep mode = sleep timer: choose 15 / 30 / 60 min in Settings; the screen goes dark right away (touch lights it without cancelling), and playback pauses when the timer ends | Agreed (Ruben, 2026-10-24) | Timer runs in the integration so it survives a panel reboot; panel shows the remaining time on SETUP and can cancel it |
+| D29 | Sleep mode = sleep timer: choose 15 / 30 / 60 / 90 min in Settings. Activating it shows the idle clock at 10 % brightness (screen stays on) with a small countdown of the remaining sleep time; a touch wakes the panel as usual without cancelling. Over the last 5 min the volume fades down, then playback pauses | Agreed (Ruben, 2026-10-24) | Timer and fade run in the integration so they survive a panel reboot. Proposed detail: restore the original volume after pausing, so the next playback isn't silent; back to 10 % clock after the normal idle timeout while the timer runs |
 
 ## Findings
 
