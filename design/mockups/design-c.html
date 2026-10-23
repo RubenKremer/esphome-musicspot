@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MusicSpot Design C</title>
+<!-- LVGL-faithful version of design set C (design/cyber-design), adjusted to the panel:
+     font scale D24 (Sans 14/16/28, Mono 12/16/24, digits 40), tabs D21, source placeholder D19,
+     header text D20, Like button D22, small covers in lists and no repeat (Ruben, 2026-10-23).
+     Icons are the design's own SVGs; on the panel they become ESPHome images (recoloured). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-bg: #e9e9ec; --page-fg: #1b1b1f; --page-muted: #5b5b66; --bezel: #1c1c1e;
+    --chip-bg: #ffffff; --chip-border: #c9c9d1;
+    /* panel tokens (future theme.yaml) */
+    --bg: #0A0A0A; --fg: #EDEDED; --dim: #8A8A8A; --dim2: #A3A3A3; --line: #2E2E2E; --line-soft: #1F1F1F;
+    --off: #3A3A3A; --accent: #FF6A1A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page-bg: #121214; --page-fg: #ececf1; --page-muted: #a0a0ad; --bezel: #2a2a2e; --chip-bg: #1d1d21; --chip-border: #3a3a41; }
+  }
+  :root[data-theme="dark"] { --page-bg: #121214; --page-fg: #ececf1; --page-muted: #a0a0ad; --bezel: #2a2a2e; --chip-bg: #1d1d21; --chip-border: #3a3a41; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px; background: var(--page-bg); color: var(--page-fg); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  p.note { margin: 0; max-width: 560px; color: var(--page-muted); text-align: center; }
+  .bezel { background: var(--bezel); padding: 22px; border-radius: 18px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .scaler { width: 480px; height: 480px; }
+
+  /* ---------- panel ---------- */
+  .screen { position: relative; width: 480px; height: 480px; overflow: hidden; background: var(--bg); color: var(--fg); font-family: "IBM Plex Sans", sans-serif; user-select: none; display: flex; flex-direction: column; }
+  /* type scale (D24): only these exist on the panel */
+  .s14 { font: 400 14px/1.2 "IBM Plex Sans", sans-serif; }
+  .s16 { font: 500 16px/1.2 "IBM Plex Sans", sans-serif; }
+  .s28 { font: 600 28px/1.05 "IBM Plex Sans", sans-serif; letter-spacing: -0.5px; }
+  .m12 { font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: 1px; }
+  .m16 { font: 400 16px/1 "IBM Plex Mono", monospace; }
+  .m24 { font: 400 24px/1 "IBM Plex Mono", monospace; }
+  .d40 { font: 500 40px/1 "IBM Plex Mono", monospace; letter-spacing: -1px; }
+  .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dim { color: var(--dim); } .dim2 { color: var(--dim2); }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  button:active { background: #1A1A1A; }
+  button[disabled] { cursor: default; }
+  .sq { display: block; flex: none; }
+  .page { flex: 1; min-height: 0; display: none; flex-direction: column; }
+  .page.active { display: flex; }
+  .toast { position: absolute; left: 18px; right: 18px; bottom: 80px; height: 44px; background: var(--fg); color: var(--bg); display: none; align-items: center; padding: 0 14px; }
+
+  /* nav */
+  nav { height: 64px; flex: none; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  nav button { color: var(--dim); border-right: 1px solid var(--line); }
+  nav button:last-child { border-right: 0; }
+  nav button.on { color: var(--fg); box-shadow: inset 0 3px 0 var(--accent); }
+
+  /* Now Playing */
+  #p-now { padding: 18px 18px 14px; gap: 14px; }
+  .np-head { height: 36px; display: flex; align-items: center; justify-content: space-between; flex: none; }
+  .chip { height: 36px; padding: 0 10px; border: 1px solid var(--line); gap: 8px; max-width: 220px; }
+  .np-top { display: flex; gap: 18px; height: 150px; flex: none; }
+  .cover { width: 150px; height: 150px; flex: none; background: #E2733B; position: relative; overflow: hidden; }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .np-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .np-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .prog { height: 12px; position: relative; display: flex; align-items: center; flex: none; cursor: pointer; }
+  .prog .track { height: 2px; width: 100%; background: var(--line); }
+  .prog .fill { position: absolute; left: 0; height: 2px; background: var(--accent); }
+  .prog .head { position: absolute; width: 3px; height: 12px; background: var(--fg); margin-left: -1px; }
+  .transport { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: 64px; border: 1px solid var(--line); flex: none; }
+  .transport button { border-right: 1px solid var(--line); }
+  .transport button:last-child { border-right: 0; }
+  .transport .play { background: var(--accent); color: var(--bg); }
+  .vol { display: flex; align-items: center; gap: 12px; height: 28px; flex: none; }
+  .segs { flex: 1; height: 20px; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px; cursor: pointer; }
+  .segs span { display: block; background: var(--line); }
+  .segs span.on { background: var(--fg); }
+  .qbtn { height: 28px; padding: 0 8px; border: 1px solid var(--line); }
+
+  /* Library */
+  #p-lib { padding: 12px 18px 14px; }
+  .src { display: flex; align-items: center; gap: 10px; height: 44px; flex: none; }
+  .seg2 { flex: 1; height: 40px; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); }
+  .seg2 .sel { background: var(--fg); color: var(--bg); gap: 8px; }
+  .seg2 .ph { border-left: 1px solid var(--line); }
+  .icon-btn { width: 44px; height: 40px; border: 1px solid var(--line); flex: none; }
+  .tabs { display: flex; height: 44px; gap: 18px; border-bottom: 1px solid var(--line); flex: none; }
+  .tabs button { height: 44px; color: var(--dim); }
+  .tabs button.on { color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
+  .body { flex: 1; min-height: 0; display: flex; }
+  .list { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-right: 14px; }
+  .row { height: 50px; flex: none; border-bottom: 1px solid var(--line-soft); justify-content: flex-start; gap: 12px; text-align: left; }
+  .row .num { width: 22px; flex: none; }
+  .row .thumb { width: 40px; height: 40px; flex: none; }
+  .row .name { flex: 1; min-width: 0; }
+  .grid { flex: 1; min-width: 0; padding: 14px 14px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: min-content; gap: 14px 10px; }
+  .tile { flex-direction: column; align-items: stretch; gap: 6px; text-align: left; min-width: 0; }
+  .tile .art { width: 100%; aspect-ratio: 1; position: relative; overflow: hidden; display: block; }
+  .tile .badge { position: absolute; left: 0; bottom: 0; height: 20px; padding: 0 6px; background: var(--accent); color: var(--bg); display: flex; align-items: center; }
+  .pager { width: 64px; flex: none; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; }
+  .pager button { flex: 1; }
+  .pager button:first-child { border-bottom: 1px solid var(--line); }
+  .pager .pn { height: 80px; flex: none; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .pager .pn i { width: 24px; height: 1px; background: var(--line); display: block; }
+
+  /* Setup placeholder */
+  #p-setup { padding: 18px; gap: 10px; }
+
+  /* ---------- page controls ---------- */
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 560px; }
+  .tools button { background: var(--chip-bg); color: var(--page-fg); border: 1px solid var(--chip-border); border-radius: 999px; padding: 6px 12px; font: 13px system-ui, sans-serif; }
+  .tools button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  details { max-width: 560px; color: var(--page-muted); }
+  details li { margin: 2px 0; }
+  @media (max-width: 560px) {
+    .bezel { padding: 10px; border-radius: 12px; }
+    .scaler { width: calc(100vw - 52px); height: calc(100vw - 52px); }
+    .screen { transform-origin: 0 0; transform: scale(calc((100vw - 52px) / 480px)); }
+  }
+</style>
+</head>
+<body>
+  <h1>MusicSpot panel — design C (LVGL-faithful)</h1>
+  <p class="note">Design C from <code>design/cyber-design</code>, adjusted to what the panel can render and the data Spotify provides. Click the tabs, rows, pager, cells and the volume bar; long-press a list row to queue.</p>
+
+  <div class="bezel"><div class="scaler"><div class="screen" id="screen">
+
+    <!-- PLAYING -->
+    <section class="page active" id="p-now">
+      <div class="np-head">
+        <span id="np-ctx" class="m12 dim ell" style="max-width:200px">TRACK 02 / 13</span>
+        <button class="chip m12" id="np-chip"><span class="sq" style="width:6px;height:6px;background:var(--accent)"></span><span id="np-dev" class="ell">THIJMEN'S GOOGLE</span></button>
+      </div>
+      <div class="np-top">
+        <div class="cover"><img id="np-art" alt="" src="https://i.scdn.co/image/ab67616d00001e027f9002f34f60077d91309783" onerror="this.remove()"></div>
+        <div class="np-meta">
+          <div id="np-title" class="s28 np-title">Out Of Me</div>
+          <div id="np-artist" class="s14 dim2 ell" style="margin-top:6px">Eric Luttrell</div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span id="np-pos" class="d40">0:56</span><span id="np-dur" class="m16 dim">/ 5:09</span>
+          </div>
+        </div>
+      </div>
+      <div class="prog" id="np-prog"><div class="track"></div><div class="fill" id="np-fill"></div><div class="head" id="np-head"></div></div>
+      <div class="transport">
+        <button id="b-shuffle" title="Shuffle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="M3 7h3.5c2 0 3.2.9 4.3 2.6l2.4 4.8c1.1 1.7 2.3 2.6 4.3 2.6H21M18 13.5l3 3.5-3 3.5M3 17h3.5c1.2 0 2.1-.3 2.9-1M14.6 8c.8-.7 1.7-1 2.9-1H21M18 3.5 21 7l-3 3.5"/></svg></button>
+        <button title="Previous"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M19 5v14L8.5 12z"/><rect x="5" y="5" width="2.4" height="14"/></svg></button>
+        <button class="play" id="b-play" title="Play/pause"></button>
+        <button title="Next"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M5 5v14l10.5-7z"/><rect x="16.6" y="5" width="2.4" height="14"/></svg></button>
+        <button id="b-like" title="Like"></button>
+      </div>
+      <div class="vol">
+        <span class="m12 dim">VOL</span>
+        <div class="segs" id="vol"></div>
+        <span id="vol-n" class="m12" style="width:22px;text-align:right">12</span>
+        <button class="qbtn m12" id="b-queue">QUEUE</button>
+      </div>
+    </section>
+
+    <!-- LIBRARY -->
+    <section class="page" id="p-lib">
+      <div class="src">
+        <span class="m12 dim">SRC</span>
+        <div class="seg2"><button class="sel m12"><span class="sq" style="width:6px;height:6px;background:#1DB954"></span>SPOTIFY</button><span class="ph" aria-hidden="true" title="Music Assistant (Phase 8)"></span></div>
+        <button class="icon-btn" id="b-search" title="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button>
+      </div>
+      <div class="tabs" id="tabs"></div>
+      <div class="body">
+        <div class="list" id="list"></div>
+        <div class="grid" id="grid" style="display:none"></div>
+        <div class="pager">
+          <button id="pg-up" title="Previous page"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="m6 15 6-6 6 6"/></svg></button>
+          <div class="pn"><span id="pg-n" style="font:500 16px 'IBM Plex Mono',monospace">01</span><i></i><span id="pg-c" class="m12 dim">03</span></div>
+          <button id="pg-dn" title="Next page"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETUP (design C Settings comes next) -->
+    <section class="page" id="p-setup">
+      <div class="m12 dim" style="height:32px;display:flex;align-items:center">SETUP / DEVICE</div>
+      <div class="s16">Not part of this mockup yet.</div>
+      <div class="s14 dim2">Next round: Settings, Output rooms (single-select, D23), Up next, Search, Idle clock.</div>
+    </section>
+
+    <div class="toast s16" id="toast"></div>
+
+    <nav>
+      <button class="m12 on" data-page="p-now">PLAYING</button>
+      <button class="m12" data-page="p-lib">LIBRARY</button>
+      <button class="m12" data-page="p-setup">SETUP</button>
+    </nav>
+  </div></div></div>
+
+  <div class="tools" aria-label="Mockup states">
+    <button data-state="playlist" aria-pressed="false">Playing from a playlist</button>
+    <button data-state="idle" aria-pressed="false">Nothing playing</button>
+    <button data-state="long" aria-pressed="false">Long title</button>
+  </div>
+
+  <details>
+    <summary>Changes from the original design C</summary>
+    <ul>
+      <li>Type scale reduced to Sans 14/16/28, Mono 12/16/24 and 40 px digits (D24): artist 15→14, row names 17→16, "/ 3:52" 14→16, pager number 15→16, album grid text 13→14 / 12 mono.</li>
+      <li>Header: <code>TRACK 02 / 13</code> for albums, otherwise the playlist name (D20). Speaker chip shows the real device name.</li>
+      <li>Fifth transport cell is ♥ Like (D22); repeat is not on the panel.</li>
+      <li>Tabs PLAYLISTS / ALBUMS / ARTISTS / RECENT (D21); Liked Songs is the first playlist row.</li>
+      <li>Source: SPOTIFY plus an empty placeholder for Music Assistant (D19).</li>
+      <li>Lists get small 40 px covers (deviation from the design, Ruben 2026-10-23).</li>
+      <li>Titles wrap to at most 2 lines, then ellipsis.</li>
+    </ul>
+  </details>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const S = {
+    play: '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 4.5v15l12-7.5z"/></svg>',
+    pause: '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4" height="15"/><rect x="14" y="4.5" width="4" height="15"/></svg>',
+    heartOn: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+    heartOff: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  };
+  const fmt = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const pad = (n) => String(n).padStart(2, "0");
+  const st = { playing: true, pos: 56951, dur: 309920, shuffle: true, liked: false, vol: 12, idle: false };
+  let toastT;
+  const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "flex"; clearTimeout(toastT); toastT = setTimeout(() => el.style.display = "none", 2500); };
+
+  // ---------- Now Playing ----------
+  function renderNow() {
+    $("b-play").innerHTML = st.playing ? S.pause : S.play;
+    $("b-shuffle").style.color = st.shuffle ? "var(--accent)" : "var(--fg)";
+    $("b-like").innerHTML = st.liked ? S.heartOn : S.heartOff;
+    $("b-like").style.color = st.liked ? "var(--accent)" : "var(--fg)";
+    const v = Math.round(st.vol / 100 * 16);
+    $("vol").innerHTML = Array.from({ length: 16 }, (_, i) => `<span class="${i < v ? "on" : ""}"></span>`).join("");
+    $("vol-n").textContent = st.vol;
+  }
+  function tick() {
+    if (st.playing && !st.idle) st.pos = Math.min(st.dur, st.pos + 500);
+    const f = st.idle ? 0 : st.pos / st.dur;
+    $("np-fill").style.width = (f * 100) + "%";
+    $("np-head").style.left = (f * 100) + "%";
+    $("np-pos").textContent = st.idle ? "0:00" : fmt(st.pos);
+    $("np-dur").textContent = st.idle ? "" : "/ " + fmt(st.dur);
+  }
+  $("b-play").onclick = () => { st.playing = !st.playing; renderNow(); };
+  $("b-shuffle").onclick = () => { st.shuffle = !st.shuffle; renderNow(); };
+  $("b-like").onclick = () => { st.liked = !st.liked; renderNow(); toast(st.liked ? "Added to Liked Songs" : "Removed from Liked Songs"); };
+  $("b-queue").onclick = () => toast("Up next — next mockup round");
+  $("np-chip").onclick = () => toast("Output — next mockup round");
+  const atFrac = (el, e) => { const r = el.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); };
+  $("np-prog").onpointerdown = (e) => { st.pos = atFrac($("np-prog"), e) * st.dur; tick(); };
+  const volDrag = (e) => { st.vol = Math.round(atFrac($("vol"), e) * 100); renderNow(); };
+  $("vol").onpointerdown = (e) => { $("vol").setPointerCapture(e.pointerId); volDrag(e); $("vol").onpointermove = volDrag; };
+  $("vol").onpointerup = () => { $("vol").onpointermove = null; };
+  setInterval(tick, 500);
+
+  // ---------- Library ----------
+  const cov = (a, b, shape) => `background:${a};background-image:${shape === "c" ? `radial-gradient(circle at 50% 42%, ${b} 0 30%, transparent 31%)` : shape === "b" ? `linear-gradient(${a} 55%, ${b} 55%)` : `linear-gradient(135deg, ${a}, ${b})`}`;
+  const DATA = {
+    PLAYLISTS: [["Liked Songs", 312, cov("#4B2AAE", "#C8B6FF")], ["Into Clouds — favourites", 13, cov("#355c7d", "#c06c84")], ["Morning focus", 48, cov("#0f9b0f", "#c7f464")], ["Dinner jazz", 96, cov("#3B2F2F", "#D9A066", "c")], ["Road trip", 64, cov("#E2733B", "#F5C46A", "c")], ["Café del Mar", 120, cov("#f7971e", "#ffd200")], ["Röyksopp radio", 50, cov("#1d2b64", "#f8cdda")], ["Late night drive", 41, cov("#1A1A2E", "#FF3D7F", "b")], ["Deep work", 120, cov("#1E3B3A", "#5FB8A8")], ["Rainy days", 33, cov("#5C5C5C", "#9CC3D5", "b")], ["Synthwave", 78, cov("#0F2233", "#4D9FFF", "b")], ["Throwbacks", 140, cov("#F0B47A", "#C2532E", "c")], ["Discover Weekly", 30, cov("#0f9b0f", "#c7f464", "b")], ["Release Radar", 30, cov("#2E2A3F", "#C98BB9")]],
+    ARTISTS: [["Eric Luttrell", 3, cov("#E2733B", "#1F2A44", "c")], ["Röyksopp", 6, cov("#1d2b64", "#f8cdda", "c")], ["Bonobo", 7, cov("#4E7A4A", "#E8D27A", "c")], ["Tycho", 5, cov("#F0B47A", "#C2532E", "c")], ["Nils Frahm", 4, cov("#D9D4C7", "#B2452F", "c")], ["Khruangbin", 4, cov("#9CC3D5", "#2D4F6C", "c")], ["Ólafur Arnalds", 6, cov("#111111", "#EDEDED", "c")]],
+    RECENT: [["Out Of Me", "Eric Luttrell", cov("#E2733B", "#F5C46A", "c")], ["Kiara", "Bonobo", cov("#4E7A4A", "#E8D27A")], ["Awake", "Tycho", cov("#F0B47A", "#C2532E", "c")], ["Says", "Nils Frahm", cov("#D9D4C7", "#B2452F", "b")], ["Here She Comes Again", "Röyksopp", cov("#1d2b64", "#f8cdda")], ["Maria También", "Khruangbin", cov("#9CC3D5", "#2D4F6C", "b")], ["Saman", "Ólafur Arnalds", cov("#111111", "#EDEDED", "c")], ["Black Sands", "Bonobo", cov("#3B2F2F", "#D9A066")]],
+    ALBUMS: [["Into Clouds", "Eric Luttrell", cov("#E2733B", "#F5C46A", "c"), true], ["Black Sands", "Bonobo", cov("#3B2F2F", "#D9A066")], ["Awake", "Tycho", cov("#F0B47A", "#C2532E", "c")], ["Spaces", "Nils Frahm", cov("#D9D4C7", "#B2452F", "b")], ["Profound Mysteries", "Röyksopp", cov("#1d2b64", "#f8cdda")], ["Con Todo El Mundo", "Khruangbin", cov("#9CC3D5", "#2D4F6C", "b")], ["re:member", "Ólafur Arnalds", cov("#111111", "#EDEDED", "c")], ["Migration", "Bonobo", cov("#4E7A4A", "#E8D27A")], ["Dive", "Tycho", cov("#0F2233", "#4D9FFF", "b")], ["All Melody", "Nils Frahm", cov("#5C5C5C", "#0A0A0A", "b")]],
+  };
+  const lib = { tab: "PLAYLISTS", page: 0 };
+  function renderLib() {
+    $("tabs").innerHTML = "";
+    ["PLAYLISTS", "ALBUMS", "ARTISTS", "RECENT"].forEach((t) => {
+      const b = document.createElement("button");
+      b.className = "m12" + (t === lib.tab ? " on" : "");
+      b.textContent = t;
+      b.onclick = () => { lib.tab = t; lib.page = 0; renderLib(); };
+      $("tabs").appendChild(b);
+    });
+    const grid = lib.tab === "ALBUMS";
+    const per = grid ? 8 : 6;
+    const items = DATA[lib.tab];
+    const pages = Math.max(1, Math.ceil(items.length / per));
+    lib.page = Math.min(lib.page, pages - 1);
+    const slice = items.slice(lib.page * per, lib.page * per + per);
+    $("list").style.display = grid ? "none" : "flex";
+    $("grid").style.display = grid ? "grid" : "none";
+    if (grid) {
+      $("grid").innerHTML = "";
+      slice.forEach((a) => {
+        const b = document.createElement("button");
+        b.className = "tile";
+        b.innerHTML = `<span class="art" style="${a[2]}">${a[3] ? '<span class="badge m12" style="font-size:10px">NOW</span>' : ""}</span>
+          <span style="display:flex;flex-direction:column;min-width:0"><span class="s14 ell" style="font-weight:500">${a[0]}</span><span class="m12 dim ell" style="letter-spacing:0">${a[1]}</span></span>`;
+        b.onclick = () => toast(`Open album: ${a[0]}`);
+        $("grid").appendChild(b);
+      });
+    } else {
+      $("list").innerHTML = "";
+      slice.forEach((it, i) => {
+        const n = lib.page * per + i + 1;
+        const b = document.createElement("button");
+        b.className = "row";
+        const right = lib.tab === "RECENT" ? "" : pad(it[1]).padStart(3, "0");
+        const name = lib.tab === "RECENT" ? `${it[0]} <span class="dim" style="font-weight:400">— ${it[1]}</span>` : it[0];
+        b.innerHTML = `<span class="num m12" style="color:${n === 1 ? "var(--accent)" : "var(--dim)"}">${pad(n)}</span>
+          <span class="thumb" style="${it[2]}"></span>
+          <span class="name s16 ell">${name}</span><span class="m12 dim">${right}</span>`;
+        let timer, long = false;
+        b.onpointerdown = () => { long = false; timer = setTimeout(() => { long = true; toast(lib.tab === "RECENT" ? `Queued: ${it[0]}` : "Only songs can be queued"); }, 500); };
+        b.onpointerup = b.onpointerleave = () => clearTimeout(timer);
+        b.onclick = () => { if (!long) toast(lib.tab === "RECENT" ? `Play: ${it[0]}` : `Open: ${it[0]}`); };
+        $("list").appendChild(b);
+      });
+    }
+    $("pg-n").textContent = pad(lib.page + 1);
+    $("pg-c").textContent = pad(pages);
+    $("pg-up").disabled = lib.page === 0;
+    $("pg-dn").disabled = lib.page >= pages - 1;
+    $("pg-up").style.color = lib.page === 0 ? "var(--off)" : "var(--fg)";
+    $("pg-dn").style.color = lib.page >= pages - 1 ? "var(--off)" : "var(--fg)";
+  }
+  $("pg-up").onclick = () => { lib.page--; renderLib(); };
+  $("pg-dn").onclick = () => { lib.page++; renderLib(); };
+  $("b-search").onclick = () => toast("Search — next mockup round");
+
+  // ---------- nav + states ----------
+  document.querySelectorAll("nav button").forEach((b) => b.onclick = () => {
+    document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === b.dataset.page));
+  });
+  document.querySelectorAll(".tools button").forEach((b) => b.onclick = () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on);
+    const s = b.dataset.state;
+    if (s === "playlist") $("np-ctx").textContent = on ? "INTO CLOUDS — FAVOURITES" : "TRACK 02 / 13";
+    if (s === "long") $("np-title").textContent = on ? "Here She Comes Again (Extended Club Version)" : "Out Of Me";
+    if (s === "idle") {
+      st.idle = on;
+      $("np-title").textContent = on ? "Nothing playing" : "Out Of Me";
+      $("np-artist").textContent = on ? "Pick something in Library" : "Eric Luttrell";
+      $("np-ctx").textContent = on ? "" : "TRACK 02 / 13";
+      $("np-art").style.display = on ? "none" : "";
+      tick();
+    }
+  });
+
+  renderNow(); renderLib(); tick();
+})();
+</script>
+</body>
+</html>

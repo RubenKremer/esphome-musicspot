@@ -1,0 +1,135 @@
+# Design C theme (D18, D24) — DRAFT
+#
+# Not included by musicspot.yaml / core.yaml yet: the screens are rebuilt onto these
+# tokens in the next step, and the file is validated in ESPHome then.
+# Visual reference: design/mockups/design-c.html (LVGL-faithful) and design/cyber-design.
+
+# -------------------------------------------
+# Colours
+# -------------------------------------------
+color:
+  - id: ms_c_bg          # page background
+    hex: 0A0A0A
+  - id: ms_c_fg          # primary text, playhead, selected segment
+    hex: EDEDED
+  - id: ms_c_dim         # labels, secondary text
+    hex: 8A8A8A
+  - id: ms_c_dim2        # artist line
+    hex: A3A3A3
+  - id: ms_c_line        # hairlines, empty segments
+    hex: 2E2E2E
+  - id: ms_c_line_soft   # row dividers
+    hex: 1F1F1F
+  - id: ms_c_off         # disabled icons
+    hex: 3A3A3A
+  - id: ms_c_accent      # orange accent (Ruben, 2026-10-23)
+    hex: FF6A1A
+  - id: ms_c_spotify     # source dot only
+    hex: 1DB954
+
+# -------------------------------------------
+# Type scale (D24): the only fonts on the panel
+# -------------------------------------------
+font:
+  - file: { type: gfonts, family: IBM Plex Sans, weight: 400 }
+    id: ms_sans14        # artist, album grid title
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true
+  - file: { type: gfonts, family: IBM Plex Sans, weight: 500 }
+    id: ms_sans16        # row names, settings rows
+    size: 16
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true
+  - file: { type: gfonts, family: IBM Plex Sans, weight: 600 }
+    id: ms_sans28        # track title
+    size: 28
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true
+  - file: { type: gfonts, family: IBM Plex Mono, weight: 500 }
+    id: ms_mono12        # uppercase labels, nav, counts (letter space 1)
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true
+  - file: { type: gfonts, family: IBM Plex Mono, weight: 400 }
+    id: ms_mono16        # "/ 5:09", pager number, keyboard
+    size: 16
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true
+  - file: { type: gfonts, family: IBM Plex Mono, weight: 400 }
+    id: ms_mono24        # search query
+    size: 24
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+    ignore_missing_glyphs: true
+  - file: { type: gfonts, family: IBM Plex Mono, weight: 500 }
+    id: ms_digits40      # elapsed time
+    size: 40
+    bpp: 4
+    glyphs: "0123456789:/ -"
+
+# -------------------------------------------
+# Icons: the design's own SVGs, white on transparent, recoloured per state in LVGL
+# -------------------------------------------
+image:
+  - { file: icons/play.svg,          id: ms_ic_play,          resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/pause.svg,         id: ms_ic_pause,         resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/prev.svg,          id: ms_ic_prev,          resize: 26x26, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/next.svg,          id: ms_ic_next,          resize: 26x26, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/shuffle.svg,       id: ms_ic_shuffle,       resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/heart.svg,         id: ms_ic_heart,         resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/heart_outline.svg, id: ms_ic_heart_outline, resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/search.svg,        id: ms_ic_search,        resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/chevron_up.svg,    id: ms_ic_up,            resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/chevron_down.svg,  id: ms_ic_down,          resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/back.svg,          id: ms_ic_back,          resize: 16x16, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/close.svg,         id: ms_ic_close,         resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/plus.svg,          id: ms_ic_plus,          resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/minus.svg,         id: ms_ic_minus,         resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { file: icons/check.svg,         id: ms_ic_check,         resize: 14x14, type: GRAYSCALE, transparency: alpha_channel }
+
+# -------------------------------------------
+# Reusable styles
+# -------------------------------------------
+lvgl:
+  style_definitions:
+    - id: ms_st_flat              # transparent container, no border, no padding
+      bg_opa: TRANSP
+      border_width: 0
+      radius: 0
+      pad_all: 0
+    - id: ms_st_box               # hairline box (chip, transport, pager, segmented control)
+      bg_opa: TRANSP
+      border_width: 1
+      border_color: ms_c_line
+      radius: 0
+      pad_all: 0
+    - id: ms_st_cell              # plain button cell (transport, pager arrows)
+      bg_opa: TRANSP
+      border_width: 0
+      radius: 0
+      shadow_width: 0
+      pad_all: 0
+    - id: ms_st_row               # list row: divider below, no fill
+      bg_opa: TRANSP
+      border_width: 1
+      border_side: BOTTOM
+      border_color: ms_c_line_soft
+      radius: 0
+      shadow_width: 0
+      pad_all: 0
+    - id: ms_st_label             # mono uppercase label (VOL, SRC, nav, counts)
+      text_font: ms_mono12
+      text_color: ms_c_dim
+      text_letter_space: 1
+    - id: ms_st_icon              # icon image tinted to the text colour
+      image_recolor: ms_c_fg
+      image_recolor_opa: COVER
+    - id: ms_st_icon_on_accent    # icon on the orange play cell
+      image_recolor: ms_c_bg
+      image_recolor_opa: COVER

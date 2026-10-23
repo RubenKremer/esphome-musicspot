@@ -129,8 +129,11 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol stay untouched.
 - [ ] P7.7 Design mockups first: clickable 480×480 HTML mockups of all screens, with the panel's colour/font limits; iterate there, not by reflashing
       (baseline of the current UI: `design/mockups/current-ui.html`, 2026-10-23)
+      (design C mockup: `design/mockups/design-c.html` (Now Playing, Library, Albums))
 - [ ] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles
+      (draft: `esphome/packages/musicspot/theme.yaml`, not included yet)
 - [ ] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls)
+      (superseded by D28: design SVG icons in `esphome/packages/musicspot/icons/`)
 - [ ] P7.10 Design system: type scale, 8 px grid, dark palette with one accent, pressed/disabled states, wall-panel touch targets; Now Playing layout with more room for art
       (direction chosen: design set C, D18–D22)
 - [ ] P7.11 Details: page transitions, loading skeleton instead of "Waiting for Home Assistant", scrolling long titles, brightness slider synced with the backlight
@@ -171,14 +174,17 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D15 | Remember recently seen Spotify devices per account and keep them on the Devices screen | Proposed | The Web API drops idle Google Cast devices from `/me/player/devices`, so you couldn't switch back to one. Transfer to a remembered device may still fail (404); then it is forgotten and logged |
 | D16 | Playlists and albums open with a **Play all** row; tracks play inside their context (playlist/album/Liked Songs) | Proposed | Since Feb 2026 Spotify only lists items of playlists you own; Play all still works for followed playlists |
 | D17 | Firmware actions `show_toast` and `show_screen` | Proposed | Feedback for queueing (no 'play next') and jumping to Now Playing after starting playback |
-| D18 | UI polish follows Claude Design set "C" (`design/cyber-design/C · *.zip`): flat, square, hairlines, IBM Plex Sans/Mono, accent `#FF6A1A` | Proposed | Reviewed Now Playing + Library 2026-10-23: fits 480×480 incl. nav, cheaper for LVGL than the current UI |
+| D18 | UI polish follows Claude Design set "C" (`design/cyber-design/C · *.zip`): flat, square, hairlines, IBM Plex Sans/Mono, accent `#FF6A1A` | Agreed (Ruben, 2026-10-23: orange accent) | Reviewed Now Playing + Library 2026-10-23: fits 480×480 incl. nav, cheaper for LVGL than the current UI |
 | D19 | Library source switch shows SPOTIFY (selected) plus an empty, inactive placeholder segment for Music Assistant | Agreed (Ruben, 2026-10-23) | Keeps the layout for Phase 8 without a fake option |
 | D20 | Now Playing header: `TRACK nn / NN` for album context; otherwise the context name (playlist name, LIKED SONGS, artist) | Agreed (Ruben, 2026-10-23) | Spotify only has track numbers for albums; playlist name needs a cached `GET /playlists/{id}` |
 | D21 | Library tabs PLAYLISTS / ALBUMS / ARTISTS / RECENT (RADIO dropped); Liked Songs is the first playlist row | Agreed (Ruben, 2026-10-23) | Spotify removed the APIs radio would need (2024) |
-| D22 | Like button and Artists tab add scopes `user-library-modify` and `user-follow-read` | Proposed | New users grant them at first sign-in; existing accounts re-authenticate once (setup detects missing scopes and starts reauth) |
+| D22 | Like button and Artists tab add scopes `user-library-modify` and `user-follow-read` | Agreed (Ruben, 2026-10-23) | New users grant them at first sign-in; existing accounts re-authenticate once (setup detects missing scopes and starts reauth) |
 | D23 | Output screen: single-select for Spotify (one active device, volume only on that one); multi-room grouping only via Music Assistant (Phase 8) | Proposed | Spotify Connect plays on one device at a time and only sets volume on the active device |
 | D24 | Consolidate design C type scale to ~9 font assets (Sans 14/16/28, Mono 12/16/24, display digits 40 and 124 with only `0-9:/ `) | Proposed | The 8 designs use ~15 font/size/weight combinations; each is a separate bitmap font in flash |
 | D25 | Search: debounce typing (~600 ms) before calling Spotify; query sent as the event `arg` | Proposed | Protects the shared dev-mode quota; keystrokes stay on the device |
+| D26 | Library lists get 40 px covers (deviation from design C); Albums tab is a 4×2 cover grid | Agreed (Ruben, 2026-10-23) | Costs up to 6–8 small image downloads per page |
+| D27 | No repeat control on the panel | Agreed (Ruben, 2026-10-23) | Design C has no place for it; use the Spotify app |
+| D28 | Icons are design C's own SVGs (`esphome/packages/musicspot/icons/`), rendered as recoloured ESPHome images, instead of an MDI font | Proposed | Pixel-faithful to the design; only ~15 icons needed |
 
 ## Findings
 
