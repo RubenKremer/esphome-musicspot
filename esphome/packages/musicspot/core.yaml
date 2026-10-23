@@ -67,6 +67,7 @@ globals:
   - { id: ms_volume, type: int, initial_value: "0" }
   - { id: ms_vol_drag, type: bool, initial_value: "false" }
   - { id: ms_vol_hold_until, type: uint32_t, initial_value: "0" }
+  - { id: ms_img_busy, type: bool, initial_value: "false" }
   - { id: ms_brightness, type: int, initial_value: "100" }
   - { id: ms_bri_drag, type: bool, initial_value: "false" }
   - { id: ms_grid, type: bool, initial_value: "false" }
@@ -302,37 +303,58 @@ script:
       - script.execute: ms_bri_seg_9_set
       - script.execute: ms_bri_seg_10_set
 
-  # One row/tile at a time: parallel image downloads (8 tiles) ran the ESP32 out of memory
+  # Text and placeholders first, then images strictly one at a time (8 parallel tile
+  # downloads rebooted the panel)
   - id: ms_refresh_rows
-    mode: restart
     then:
       - script.execute: ms_row_1_set
-      - delay: 120ms
       - script.execute: ms_row_2_set
-      - delay: 120ms
       - script.execute: ms_row_3_set
-      - delay: 120ms
       - script.execute: ms_row_4_set
-      - delay: 120ms
       - script.execute: ms_row_5_set
-      - delay: 120ms
       - script.execute: ms_row_6_set
-      - delay: 120ms
       - script.execute: ms_tile_1_set
-      - delay: 120ms
       - script.execute: ms_tile_2_set
-      - delay: 120ms
       - script.execute: ms_tile_3_set
-      - delay: 120ms
       - script.execute: ms_tile_4_set
-      - delay: 120ms
       - script.execute: ms_tile_5_set
-      - delay: 120ms
       - script.execute: ms_tile_6_set
-      - delay: 120ms
       - script.execute: ms_tile_7_set
-      - delay: 120ms
       - script.execute: ms_tile_8_set
+      - script.execute: ms_load_images
+
+  # Restarted by every new page, so an old page's queue never delays the new one
+  - id: ms_load_images
+    mode: restart
+    then:
+      - script.execute: ms_row_1_load
+      - script.wait: ms_row_1_load
+      - script.execute: ms_row_2_load
+      - script.wait: ms_row_2_load
+      - script.execute: ms_row_3_load
+      - script.wait: ms_row_3_load
+      - script.execute: ms_row_4_load
+      - script.wait: ms_row_4_load
+      - script.execute: ms_row_5_load
+      - script.wait: ms_row_5_load
+      - script.execute: ms_row_6_load
+      - script.wait: ms_row_6_load
+      - script.execute: ms_tile_1_load
+      - script.wait: ms_tile_1_load
+      - script.execute: ms_tile_2_load
+      - script.wait: ms_tile_2_load
+      - script.execute: ms_tile_3_load
+      - script.wait: ms_tile_3_load
+      - script.execute: ms_tile_4_load
+      - script.wait: ms_tile_4_load
+      - script.execute: ms_tile_5_load
+      - script.wait: ms_tile_5_load
+      - script.execute: ms_tile_6_load
+      - script.wait: ms_tile_6_load
+      - script.execute: ms_tile_7_load
+      - script.wait: ms_tile_7_load
+      - script.execute: ms_tile_8_load
+      - script.wait: ms_tile_8_load
 
   - id: ms_refresh_device_rows
     then:

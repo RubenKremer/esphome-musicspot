@@ -1,4 +1,5 @@
-# Albums grid tile ${n}: 84 px cover + update script. vars: n (1..8), idx (n - 1).
+# Albums grid tile ${n}: 84 px cover + update/load scripts. vars: n (1..8), idx (n - 1).
+# ms_tile_${n}_set draws text and the placeholder at once; ms_tile_${n}_load fetches the cover.
 # Widget: widgets/tile.yaml. Shown only when the page is a grid (ms_grid).
 
 image:
@@ -15,8 +16,10 @@ image:
           id: ms_tile_${n}_art
           src: ms_tile_img_${n}
       - lvgl.widget.show: ms_tile_${n}_art
+      - lambda: id(ms_img_busy) = false;
     on_error:
       - lvgl.widget.hide: ms_tile_${n}_art
+      - lambda: id(ms_img_busy) = false;
 
 script:
   - id: ms_tile_${n}_set
@@ -39,15 +42,24 @@ script:
                   - lvgl.widget.show: ms_tile_${n}_now
                 else:
                   - lvgl.widget.hide: ms_tile_${n}_now
-            - if:
-                condition:
-                  lambda: return id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
-                then:
-                  - online_image.set_url:
-                      id: ms_tile_img_${n}
-                      url: !lambda return id(ms_thumbs)[${idx}];
-                else:
-                  - lvgl.widget.hide: ms_tile_${n}_art
+            # Placeholder until ms_tile_${n}_load brings this page's cover
+            - lvgl.widget.hide: ms_tile_${n}_art
             - lvgl.widget.show: ms_tile_${n}
           else:
             - lvgl.widget.hide: ms_tile_${n}
+
+  - id: ms_tile_${n}_load
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_grid) && id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
+          then:
+            - lambda: id(ms_img_busy) = true;
+            - online_image.set_url:
+                id: ms_tile_img_${n}
+                url: !lambda return id(ms_thumbs)[${idx}];
+            - wait_until:
+                condition:
+                  lambda: return !id(ms_img_busy);
+                timeout: 6s

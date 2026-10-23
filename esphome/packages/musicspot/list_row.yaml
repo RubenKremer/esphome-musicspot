@@ -1,4 +1,6 @@
-# Library list row ${n}: 40 px thumbnail + update script. vars: n (1..6), idx (n - 1).
+# Library list row ${n}: 40 px thumbnail + update/load scripts. vars: n (1..6), idx (n - 1).
+# ms_row_${n}_set draws text and the placeholder at once; ms_row_${n}_load fetches the image
+# (called one row at a time by ms_load_images).
 # Widget: widgets/list_row.yaml. Data: ms_nums / ms_titles / ms_subtitles / ms_counts / ms_thumbs.
 
 image:
@@ -15,8 +17,10 @@ image:
           id: ms_row_${n}_thumb
           src: ms_thumb_${n}
       - lvgl.widget.show: ms_row_${n}_thumb
+      - lambda: id(ms_img_busy) = false;
     on_error:
       - lvgl.widget.hide: ms_row_${n}_thumb
+      - lambda: id(ms_img_busy) = false;
 
 script:
   - id: ms_row_${n}_set
@@ -49,15 +53,24 @@ script:
                   - lvgl.widget.show: ms_row_${n}_sub
                 else:
                   - lvgl.widget.hide: ms_row_${n}_sub
-            - if:
-                condition:
-                  lambda: return id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
-                then:
-                  - online_image.set_url:
-                      id: ms_thumb_${n}
-                      url: !lambda return id(ms_thumbs)[${idx}];
-                else:
-                  - lvgl.widget.hide: ms_row_${n}_thumb
+            # Placeholder until ms_row_${n}_load brings this page's image
+            - lvgl.widget.hide: ms_row_${n}_thumb
             - lvgl.widget.show: ms_row_${n}
           else:
             - lvgl.widget.hide: ms_row_${n}
+
+  - id: ms_row_${n}_load
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return !id(ms_grid) && id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
+          then:
+            - lambda: id(ms_img_busy) = true;
+            - online_image.set_url:
+                id: ms_thumb_${n}
+                url: !lambda return id(ms_thumbs)[${idx}];
+            - wait_until:
+                condition:
+                  lambda: return !id(ms_img_busy);
+                timeout: 6s
