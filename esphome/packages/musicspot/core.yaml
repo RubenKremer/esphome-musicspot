@@ -68,6 +68,7 @@ globals:
   - { id: ms_vol_drag, type: bool, initial_value: "false" }
   - { id: ms_vol_hold_until, type: uint32_t, initial_value: "0" }
   - { id: ms_brightness, type: int, initial_value: "100" }
+  - { id: ms_bri_drag, type: bool, initial_value: "false" }
   - { id: ms_grid, type: bool, initial_value: "false" }
   - { id: ms_now_index, type: int, initial_value: "-1" }
   - { id: ms_nums, type: std::vector<std::string> }
@@ -124,6 +125,22 @@ script:
             type: !lambda return type;
             arg: !lambda return arg;
             value: !lambda return to_string(value);
+
+  # Events sent before Home Assistant subscribes are dropped: wait for the subscription
+  - id: ms_send_hello
+    mode: restart
+    then:
+      - wait_until:
+          condition:
+            api.connected:
+              state_subscription_only: true
+          timeout: 30s
+      - delay: 2s
+      - script.execute:
+          id: ms_send_input
+          type: hello
+          arg: ""
+          value: 0
 
   - id: ms_set_awake
     parameters:
@@ -376,11 +393,7 @@ api:
         condition:
           lambda: return client_info.find("Home Assistant") != std::string::npos;
         then:
-          - script.execute:
-              id: ms_send_input
-              type: hello
-              arg: ""
-              value: 0
+          - script.execute: ms_send_hello
     - script.execute: ms_update_offline
   on_client_disconnected:
     - script.execute: ms_update_offline
@@ -1130,11 +1143,17 @@ lvgl:
                                 bg_opa: TRANSP
                               knob:
                                 bg_opa: TRANSP
+                              # on_value also fires for updates from Home Assistant, so only a
+                              # press marks the bar as being dragged
+                              on_press:
+                                - lambda: id(ms_vol_drag) = true;
                               on_value:
-                                - lambda: |-
-                                    id(ms_vol_drag) = true;
-                                    id(ms_volume) = (int) x;
-                                - script.execute: ms_vol_render
+                                - if:
+                                    condition:
+                                      lambda: return id(ms_vol_drag);
+                                    then:
+                                      - lambda: id(ms_volume) = (int) x;
+                                      - script.execute: ms_vol_render
                               on_release:
                                 - lambda: |-
                                     id(ms_vol_drag) = false;
@@ -1595,10 +1614,17 @@ lvgl:
                                 bg_opa: TRANSP
                               knob:
                                 bg_opa: TRANSP
+                              on_press:
+                                - lambda: id(ms_bri_drag) = true;
                               on_value:
-                                - lambda: id(ms_brightness) = (int) x;
-                                - script.execute: ms_bri_render
+                                - if:
+                                    condition:
+                                      lambda: return id(ms_bri_drag);
+                                    then:
+                                      - lambda: id(ms_brightness) = (int) x;
+                                      - script.execute: ms_bri_render
                               on_release:
+                                - lambda: id(ms_bri_drag) = false;
                                 - light.turn_on:
                                     id: display_backlight
                                     brightness: !lambda return x / 100.0;

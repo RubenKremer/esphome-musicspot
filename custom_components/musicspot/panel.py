@@ -40,6 +40,9 @@ _POSITION_TOLERANCE_MS = 2500
 _REFRESH_DELAY_S = 0.5
 # After a seek, Spotify may still report the old position; don't push it back to the panel.
 _SEEK_GRACE_S = 4.0
+# First push after setup: wait up to 2 minutes for the panel's ESPHome actions.
+_REACHABLE_TRIES = 24
+_REACHABLE_INTERVAL_S = 5
 _MAX_DEVICES = 5
 
 
@@ -110,8 +113,17 @@ class MusicSpotPanel:
         )
         # Don't hold up (or fail) integration setup on the panel; it also asks with `hello`.
         self.coordinator.config_entry.async_create_background_task(
-            self.hass, self.async_push_all(), f"musicspot push {self.title}"
+            self.hass, self._async_push_when_reachable(), f"musicspot push {self.title}"
         )
+
+    async def _async_push_when_reachable(self) -> None:
+        """Push once the panel's actions exist (after an HA restart ESPHome connects later)."""
+        for _ in range(_REACHABLE_TRIES):
+            if async_resolve_action_prefix(self.hass, self.device_id) is not None:
+                await self.async_push_all()
+                return
+            await asyncio.sleep(_REACHABLE_INTERVAL_S)
+        LOGGER.info("Panel %s did not come online; waiting for its hello", self.title)
 
     @callback
     def async_stop(self) -> None:
