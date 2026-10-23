@@ -77,7 +77,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [x] P2.8 API action `set_busy(bool)` + spinner overlay — verified on device while Browse pages load, 2026-10-23
 - [x] P2.9 Outgoing events `esphome.musicspot_input`: tap/queue (slot), back, page(±1), device (slot), control(cmd, value), awake, hello — verified: awake, tap, queue, back, page events seen with device_id, 2026-10-23
       — all pass the device's own identity
-- [ ] P2.10 Fallback screens: no connection to HA / nothing playing / no devices
+- [x] P2.10 Fallback screens: no connection to HA / nothing playing / no devices — verified on device (HA restart banner, nothing playing), 2026-10-23
 - [x] P2.11 Test everything from HA Developer Tools with fake data (no integration yet) — covered by Developer Tools tests (P2.5/P2.6/P2.9) and real-data testing in Phases 4–5, 2026-10-23
 
 **Done when:** every screen can be driven by hand from Developer Tools, and taps show up as HA action calls.
@@ -87,7 +87,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [x] P3.2 `application_credentials` + OAuth2 config flow (account = config entry) — verified: account added via UI (Spotify sign-in), 2026-10-22
 - [x] P3.3 Spotify API client (own aiohttp client, D12), token refresh — verified: `/me` + `/me/player` calls succeed, 2026-10-22 (token refresh not yet observed)
 - [x] P3.4 Account coordinator: playback state; fast/slow polling; 429 `QUOTA_EXCEEDED` back-off — verified: debug log shows playback polled (0.2 s fetch), 2026-10-22 (fast mode and 429 path not yet exercised)
-- [ ] P3.5 Reauth flow when the token is revoked
+- [ ] P3.5 Reauth flow when the token is revoked (deferred: test when D22 adds scopes)
 - [x] P3.6 Diagnostics (redacted) — verified: downloaded from HA 2026-10-22; tokens, ids, names redacted. Gap found and fixed: `external_urls` leaked Spotify ids
 
 **Done when:** account adds via UI, playback state visible in logs, survives HA restart.
