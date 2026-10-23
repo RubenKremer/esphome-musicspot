@@ -39,5 +39,6 @@ widgets:
       width: 10
       flex_grow: 1
       long_mode: DOT
+      height: 21  # one line, so DOT truncates instead of wrapping
       text_font: ms_sans16
       text_color: ms_c_fg

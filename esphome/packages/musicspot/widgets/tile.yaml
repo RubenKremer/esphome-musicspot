@@ -45,6 +45,7 @@ widgets:
       text: ""
       width: 84
       long_mode: DOT
+      height: 18  # one line, so DOT truncates instead of wrapping
       text_font: ms_sans14
       text_color: ms_c_fg
   - label:
@@ -52,5 +53,6 @@ widgets:
       text: ""
       width: 84
       long_mode: DOT
+      height: 15  # one line, so DOT truncates instead of wrapping
       text_font: ms_mono12
       text_color: ms_c_dim

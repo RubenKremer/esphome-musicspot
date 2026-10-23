@@ -871,6 +871,7 @@ lvgl:
                 width: 100%
                 align: LEFT_MID
                 long_mode: DOT
+                height: 21  # one line, so DOT truncates instead of wrapping
                 text_font: ms_sans16
                 text_color: ms_c_bg
       # Shown while Home Assistant is not connected
@@ -919,6 +920,7 @@ lvgl:
                         align: LEFT_MID
                         width: 200
                         long_mode: DOT
+                        height: 15  # one line, so DOT truncates instead of wrapping
                         styles: ms_st_label
                     - button:
                         align: RIGHT_MID
@@ -947,6 +949,7 @@ lvgl:
                               text: "NO SPEAKER"
                               width: SIZE_CONTENT
                               long_mode: DOT
+                              height: 15  # one line, so DOT truncates instead of wrapping
                               text_font: ms_mono12
                               text_color: ms_c_fg
                               text_letter_space: 1
@@ -994,6 +997,7 @@ lvgl:
                               text: "Waiting for Home Assistant"
                               width: 100%
                               long_mode: DOT
+                              height: 18  # one line, so DOT truncates instead of wrapping
                               text_font: ms_sans14
                               text_color: ms_c_dim2
                           - obj:
@@ -1354,6 +1358,7 @@ lvgl:
                               width: 10
                               flex_grow: 1
                               long_mode: DOT
+                              height: 21  # one line, so DOT truncates instead of wrapping
                               text_font: ms_sans16
                               text_color: ms_c_fg
               # Tabs (D21)
@@ -1764,6 +1769,7 @@ lvgl:
                   width: 10
                   flex_grow: 1
                   long_mode: DOT
+                  height: 18  # one line, so DOT truncates instead of wrapping
                   text_font: ms_sans14
                   text_color: ms_c_idle_fg
               - label:
