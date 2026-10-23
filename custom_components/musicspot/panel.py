@@ -96,6 +96,7 @@ class MusicSpotPanel:
             coordinator.api, coordinator.config_entry.unique_id or ""
         )
         self._browse_lock = asyncio.Lock()
+        self._mismatch_logged = False
         self._context_names: dict[str, str] = {}
         self._liked: dict[str, bool] = {}
 
@@ -107,7 +108,10 @@ class MusicSpotPanel:
         self._unsub_coordinator = self.coordinator.async_add_listener(
             self._handle_coordinator_update
         )
-        await self.async_push_all()
+        # Don't hold up (or fail) integration setup on the panel; it also asks with `hello`.
+        self.coordinator.config_entry.async_create_background_task(
+            self.hass, self.async_push_all(), f"musicspot push {self.title}"
+        )
 
     @callback
     def async_stop(self) -> None:
@@ -145,6 +149,18 @@ class MusicSpotPanel:
             )
         except HomeAssistantError as err:
             LOGGER.warning("Could not send %s to panel %s: %s", action, self.title, err)
+        except Exception as err:  # noqa: BLE001 - schema errors must never break setup
+            # The action's schema comes from the panel firmware; a rejected field means
+            # firmware and integration speak different protocol versions.
+            if not self._mismatch_logged:
+                self._mismatch_logged = True
+                LOGGER.warning(
+                    "Panel %s rejected %s (%s). Its firmware does not match this MusicSpot "
+                    "version; flash the matching firmware from the repository",
+                    self.title,
+                    action,
+                    err,
+                )
 
     async def async_push_all(self) -> None:
         """Push everything (panel connected or woke up)."""
