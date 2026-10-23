@@ -258,6 +258,17 @@ script:
       - script.execute: ms_vol_seg_15_set
       - script.execute: ms_vol_seg_16_set
 
+  # Read the backlight's target brightness into the bar (not while the slider is being dragged)
+  - id: ms_bri_sync
+    then:
+      - lambda: |-
+          auto values = id(display_backlight).remote_values;
+          id(ms_brightness) = values.is_on() ? (int) roundf(values.get_brightness() * 100) : 0;
+      - lvgl.slider.update:
+          id: ms_bri_slider
+          value: !lambda return id(ms_brightness);
+      - script.execute: ms_bri_render
+
   - id: ms_bri_render
     then:
       - lvgl.label.update:
@@ -332,6 +343,20 @@ script:
       - lvgl.widget.show: ms_navbar
       - script.execute: { id: ms_nav, screen: 0 }
       - script.execute: { id: ms_set_awake, awake: true }
+
+# Segment bars are drawn by scripts, so draw them once after boot
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - script.execute: ms_bri_sync
+        - script.execute: ms_vol_render
+
+# Brightness bar follows the backlight, also when it is changed from Home Assistant
+light:
+  - id: !extend display_backlight
+    on_state:
+      - script.execute: ms_bri_sync
 
 touchscreen:
   - id: !extend my_touchscreen
