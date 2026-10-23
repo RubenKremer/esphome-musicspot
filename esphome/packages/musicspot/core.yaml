@@ -381,6 +381,15 @@ touchscreen:
       - script.execute:
           id: ms_set_awake
           awake: true
+    # A slider whose press is lost (finger slid off) gets no on_release; never leave its flag stuck
+    on_release:
+      - lambda: |-
+          if (id(ms_vol_drag)) {
+            id(ms_vol_drag) = false;
+            id(ms_vol_hold_until) = millis() + 4000;
+          }
+          id(ms_bri_drag) = false;
+          id(ms_seeking) = false;
 
 # -------------------------------------------
 # Inbound: API actions called by the integration
@@ -1172,9 +1181,7 @@ lvgl:
                         text_color: ms_c_fg
                     - button:
                         height: 28
-                        width: SIZE_CONTENT
-                        pad_left: 8
-                        pad_right: 8
+                        width: 64
                         styles: ms_st_box
                         on_click:
                           - script.execute: { id: ms_toast, message: "Up next arrives in Phase 6" }
@@ -1327,7 +1334,7 @@ lvgl:
                   widgets:
                     - button:
                         id: ms_tab_0
-                        width: SIZE_CONTENT
+                        width: 80
                         height: 44
                         border_color: ms_c_accent
                         border_side: [BOTTOM]
@@ -1345,13 +1352,13 @@ lvgl:
                           - label:
                               id: ms_tab_0_lbl
                               text: "PLAYLISTS"
-                              align: CENTER
+                              align: LEFT_MID
                               text_font: ms_mono12
                               text_color: ms_c_fg
                               text_letter_space: 1
                     - button:
                         id: ms_tab_1
-                        width: SIZE_CONTENT
+                        width: 56
                         height: 44
                         border_color: ms_c_accent
                         border_side: [BOTTOM]
@@ -1369,13 +1376,13 @@ lvgl:
                           - label:
                               id: ms_tab_1_lbl
                               text: "ALBUMS"
-                              align: CENTER
+                              align: LEFT_MID
                               text_font: ms_mono12
                               text_color: ms_c_dim
                               text_letter_space: 1
                     - button:
                         id: ms_tab_2
-                        width: SIZE_CONTENT
+                        width: 64
                         height: 44
                         border_color: ms_c_accent
                         border_side: [BOTTOM]
@@ -1393,13 +1400,13 @@ lvgl:
                           - label:
                               id: ms_tab_2_lbl
                               text: "ARTISTS"
-                              align: CENTER
+                              align: LEFT_MID
                               text_font: ms_mono12
                               text_color: ms_c_dim
                               text_letter_space: 1
                     - button:
                         id: ms_tab_3
-                        width: SIZE_CONTENT
+                        width: 56
                         height: 44
                         border_color: ms_c_accent
                         border_side: [BOTTOM]
@@ -1417,7 +1424,7 @@ lvgl:
                           - label:
                               id: ms_tab_3_lbl
                               text: "RECENT"
-                              align: CENTER
+                              align: LEFT_MID
                               text_font: ms_mono12
                               text_color: ms_c_dim
                               text_letter_space: 1
