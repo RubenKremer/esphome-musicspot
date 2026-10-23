@@ -206,6 +206,9 @@ class MusicSpotPanel:
             playing_album = (
                 ((self.coordinator.data or {}).get("item") or {}).get("album") or {}
             ).get("uri")
+            # Hide the spinner first: the panel's image downloads that follow show_page run
+            # in its main loop and would leave a frozen spinner on screen.
+            await self._call("set_busy", {"busy": False})
             await self._call(
                 "show_page",
                 {
@@ -230,7 +233,6 @@ class MusicSpotPanel:
                     "thumbs": list(thumbs),
                 },
             )
-            await self._call("set_busy", {"busy": False})
 
     async def _thumb_url(self, slot: int, row: Row, size: int) -> str:
         """Prepare a row thumbnail and return its panel URL ('' for none)."""
