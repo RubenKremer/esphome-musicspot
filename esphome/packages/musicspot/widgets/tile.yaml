@@ -1,12 +1,13 @@
 # Albums grid tile ${n} (used as `- button: !include`). Tap = open album, long press = queue hint.
 id: ms_tile_${n}
 width: 84
-height: 124
+height: 132  # cover 84 + 6 + title 18 + 6 + artist 16 (+2)
 hidden: true
 layout:
   type: flex
   flex_flow: COLUMN
   pad_row: 6
+  pad_column: 0
 on_short_click:
   - script.execute:
       id: ms_send_input
@@ -53,6 +54,6 @@ widgets:
       text: ""
       width: 84
       long_mode: DOT
-      height: 15  # one line, so DOT truncates instead of wrapping
+      height: 16  # one line, so DOT truncates instead of wrapping
       text_font: ms_mono12
       text_color: ms_c_dim

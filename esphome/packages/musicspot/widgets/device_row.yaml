@@ -10,6 +10,7 @@ layout:
   flex_align_cross: CENTER
   flex_align_track: CENTER
   pad_column: 12
+  pad_row: 0
 on_short_click:
   - script.execute:
       id: ms_send_input

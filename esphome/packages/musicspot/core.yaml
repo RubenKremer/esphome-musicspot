@@ -784,6 +784,8 @@ lvgl:
           layout:
             type: flex
             flex_flow: ROW
+            pad_row: 0
+            pad_column: 0
           widgets:
             - button:
                 width: 10
@@ -934,6 +936,7 @@ lvgl:
               type: flex
               flex_flow: COLUMN
               pad_row: 14
+              pad_column: 0
             widgets:
               # Header: TRACK nn / NN or context name, speaker chip
               - obj:
@@ -962,6 +965,7 @@ lvgl:
                           flex_align_cross: CENTER
                           flex_align_track: CENTER
                           pad_column: 8
+                          pad_row: 0
                         on_click:
                           - script.execute: { id: ms_nav, screen: 2 }
                         widgets:
@@ -989,6 +993,7 @@ lvgl:
                     type: flex
                     flex_flow: ROW
                     pad_column: 18
+                    pad_row: 0
                   widgets:
                     - obj:
                         width: 150
@@ -1010,6 +1015,8 @@ lvgl:
                         layout:
                           type: flex
                           flex_flow: COLUMN
+                          pad_row: 0
+                          pad_column: 0
                         widgets:
                           - label:
                               id: ms_np_title
@@ -1101,6 +1108,8 @@ lvgl:
                   layout:
                     type: flex
                     flex_flow: ROW
+                    pad_row: 0
+                    pad_column: 0
                   widgets:
                     - button:
                         width: 10
@@ -1175,6 +1184,7 @@ lvgl:
                     flex_align_cross: CENTER
                     flex_align_track: CENTER
                     pad_column: 12
+                    pad_row: 0
                   widgets:
                     - label: { text: "VOL", styles: ms_st_label }
                     - obj:
@@ -1191,6 +1201,7 @@ lvgl:
                                 type: flex
                                 flex_flow: ROW
                                 pad_column: 3
+                                pad_row: 0
                               widgets:
                                 - obj: !include { file: widgets/segment.yaml, vars: { group: vol, n: 1 } }
                                 - obj: !include { file: widgets/segment.yaml, vars: { group: vol, n: 2 } }
@@ -1280,6 +1291,8 @@ lvgl:
             layout:
               type: flex
               flex_flow: COLUMN
+              pad_row: 0
+              pad_column: 0
             widgets:
               # Header: source switch + search at a tab root; BACK + title inside a folder
               - obj:
@@ -1298,6 +1311,7 @@ lvgl:
                           flex_align_cross: CENTER
                           flex_align_track: CENTER
                           pad_column: 10
+                          pad_row: 0
                         widgets:
                           - label: { text: "SRC", styles: ms_st_label }
                           - obj:
@@ -1309,6 +1323,8 @@ lvgl:
                               layout:
                                 type: flex
                                 flex_flow: ROW
+                                pad_row: 0
+                                pad_column: 0
                               widgets:
                                 - obj:
                                     width: 10
@@ -1323,6 +1339,7 @@ lvgl:
                                       flex_align_cross: CENTER
                                       flex_align_track: CENTER
                                       pad_column: 8
+                                      pad_row: 0
                                     widgets:
                                       - obj: { width: 6, height: 6, bg_color: ms_c_spotify, bg_opa: COVER }
                                       - label:
@@ -1358,6 +1375,7 @@ lvgl:
                           flex_align_cross: CENTER
                           flex_align_track: CENTER
                           pad_column: 12
+                          pad_row: 0
                         widgets:
                           - button:
                               height: 40
@@ -1371,6 +1389,7 @@ lvgl:
                                 flex_align_cross: CENTER
                                 flex_align_track: CENTER
                                 pad_column: 6
+                                pad_row: 0
                               on_click:
                                 - script.execute: { id: ms_send_input, type: back, arg: "", value: 0 }
                               widgets:
@@ -1401,6 +1420,7 @@ lvgl:
                     type: flex
                     flex_flow: ROW
                     pad_column: 18
+                    pad_row: 0
                   widgets:
                     - button:
                         id: ms_tab_0
@@ -1507,6 +1527,8 @@ lvgl:
                   layout:
                     type: flex
                     flex_flow: ROW
+                    pad_row: 0
+                    pad_column: 0
                   widgets:
                     - obj:
                         id: ms_lib_list
@@ -1518,6 +1540,8 @@ lvgl:
                         layout:
                           type: flex
                           flex_flow: COLUMN
+                          pad_row: 0
+                          pad_column: 0
                         widgets:
                           - label:
                               id: ms_lib_empty
@@ -1544,7 +1568,7 @@ lvgl:
                           type: flex
                           flex_flow: ROW_WRAP
                           pad_row: 14
-                          pad_column: 10
+                          pad_column: 8  # 4 x 84 + 3 x 8 = 360 of 366 px: leaves slack so 4 columns never wrap to 3
                         widgets:
                           - button: !include { file: widgets/tile.yaml, vars: { n: 1 } }
                           - button: !include { file: widgets/tile.yaml, vars: { n: 2 } }
@@ -1564,6 +1588,8 @@ lvgl:
                         layout:
                           type: flex
                           flex_flow: COLUMN
+                          pad_row: 0
+                          pad_column: 0
                         widgets:
                           - button:
                               width: 100%
@@ -1589,6 +1615,7 @@ lvgl:
                                 flex_align_cross: CENTER
                                 flex_align_track: CENTER
                                 pad_row: 8
+                                pad_column: 0
                               widgets:
                                 - label: { id: ms_pg_n, text: "01", text_font: ms_mono16, text_color: ms_c_fg }
                                 - obj: { width: 24, height: 1, bg_color: ms_c_line, bg_opa: COVER }
@@ -1620,6 +1647,8 @@ lvgl:
             layout:
               type: flex
               flex_flow: COLUMN
+              pad_row: 0
+              pad_column: 0
             widgets:
               - label:
                   text: "SETUP / OUTPUT"
@@ -1652,6 +1681,7 @@ lvgl:
                     flex_align_cross: CENTER
                     flex_align_track: CENTER
                     pad_column: 14
+                    pad_row: 0
                   widgets:
                     - label: { text: "Brightness", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
                     - obj:
@@ -1668,6 +1698,7 @@ lvgl:
                                 type: flex
                                 flex_flow: ROW
                                 pad_column: 3
+                                pad_row: 0
                               widgets:
                                 - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 1 } }
                                 - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 2 } }
@@ -1755,6 +1786,8 @@ lvgl:
             layout:
               type: flex
               flex_flow: ROW
+              pad_row: 0
+              pad_column: 0
             widgets:
               - label: { id: ms_idle_hh, text: "00", text_font: ms_digits124, text_color: ms_c_idle_fg, text_letter_space: -5 }
               - label: { text: ":", text_font: ms_digits124, text_color: ms_c_accent_dim }
@@ -1784,6 +1817,7 @@ lvgl:
               flex_align_cross: CENTER
               flex_align_track: CENTER
               pad_column: 14
+              pad_row: 0
             widgets:
               - obj:
                   id: ms_idle_dot
