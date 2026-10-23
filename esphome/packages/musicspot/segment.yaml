@@ -1,5 +1,6 @@
 # Segmented bar cell ${n} of ${count} (volume / brightness, design C).
-# vars: group (vol | bri), n (1..count), count, value (global id holding 0..100), on (hex colour).
+# vars: group (vol | bri), n (1..count), count, value (global id holding 0..100), color_on (hex colour).
+# (Not `on`: YAML 1.1 reads that key as a boolean.)
 # Widget: widgets/segment.yaml.
 
 script:
@@ -8,4 +9,4 @@ script:
       - lvgl.widget.update:
           id: ms_${group}_seg_${n}
           bg_color: !lambda |-
-            return (id(${value}) * ${count} + 50) / 100 >= ${n} ? lv_color_hex(${on}) : lv_color_hex(0x2E2E2E);
+            return (id(${value}) * ${count} + 50) / 100 >= ${n} ? lv_color_hex(${color_on}) : lv_color_hex(0x2E2E2E);

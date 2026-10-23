@@ -27,32 +27,32 @@ packages:
   device_row_3: !include { file: device_row.yaml, vars: { n: 3, idx: 2 } }
   device_row_4: !include { file: device_row.yaml, vars: { n: 4, idx: 3 } }
   device_row_5: !include { file: device_row.yaml, vars: { n: 5, idx: 4 } }
-  vol_seg_1: !include { file: segment.yaml, vars: { group: vol, n: 1, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_2: !include { file: segment.yaml, vars: { group: vol, n: 2, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_3: !include { file: segment.yaml, vars: { group: vol, n: 3, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_4: !include { file: segment.yaml, vars: { group: vol, n: 4, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_5: !include { file: segment.yaml, vars: { group: vol, n: 5, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_6: !include { file: segment.yaml, vars: { group: vol, n: 6, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_7: !include { file: segment.yaml, vars: { group: vol, n: 7, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_8: !include { file: segment.yaml, vars: { group: vol, n: 8, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_9: !include { file: segment.yaml, vars: { group: vol, n: 9, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_10: !include { file: segment.yaml, vars: { group: vol, n: 10, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_11: !include { file: segment.yaml, vars: { group: vol, n: 11, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_12: !include { file: segment.yaml, vars: { group: vol, n: 12, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_13: !include { file: segment.yaml, vars: { group: vol, n: 13, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_14: !include { file: segment.yaml, vars: { group: vol, n: 14, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_15: !include { file: segment.yaml, vars: { group: vol, n: 15, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  vol_seg_16: !include { file: segment.yaml, vars: { group: vol, n: 16, count: 16, value: ms_volume, on: "0xEDEDED" } }
-  bri_seg_1: !include { file: segment.yaml, vars: { group: bri, n: 1, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_2: !include { file: segment.yaml, vars: { group: bri, n: 2, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_3: !include { file: segment.yaml, vars: { group: bri, n: 3, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_4: !include { file: segment.yaml, vars: { group: bri, n: 4, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_5: !include { file: segment.yaml, vars: { group: bri, n: 5, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_6: !include { file: segment.yaml, vars: { group: bri, n: 6, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_7: !include { file: segment.yaml, vars: { group: bri, n: 7, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_8: !include { file: segment.yaml, vars: { group: bri, n: 8, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_9: !include { file: segment.yaml, vars: { group: bri, n: 9, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
-  bri_seg_10: !include { file: segment.yaml, vars: { group: bri, n: 10, count: 10, value: ms_brightness, on: "0xFF6A1A" } }
+  vol_seg_1: !include { file: segment.yaml, vars: { group: vol, n: 1, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_2: !include { file: segment.yaml, vars: { group: vol, n: 2, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_3: !include { file: segment.yaml, vars: { group: vol, n: 3, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_4: !include { file: segment.yaml, vars: { group: vol, n: 4, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_5: !include { file: segment.yaml, vars: { group: vol, n: 5, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_6: !include { file: segment.yaml, vars: { group: vol, n: 6, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_7: !include { file: segment.yaml, vars: { group: vol, n: 7, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_8: !include { file: segment.yaml, vars: { group: vol, n: 8, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_9: !include { file: segment.yaml, vars: { group: vol, n: 9, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_10: !include { file: segment.yaml, vars: { group: vol, n: 10, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_11: !include { file: segment.yaml, vars: { group: vol, n: 11, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_12: !include { file: segment.yaml, vars: { group: vol, n: 12, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_13: !include { file: segment.yaml, vars: { group: vol, n: 13, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_14: !include { file: segment.yaml, vars: { group: vol, n: 14, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_15: !include { file: segment.yaml, vars: { group: vol, n: 15, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  vol_seg_16: !include { file: segment.yaml, vars: { group: vol, n: 16, count: 16, value: ms_volume, color_on: "0xEDEDED" } }
+  bri_seg_1: !include { file: segment.yaml, vars: { group: bri, n: 1, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_2: !include { file: segment.yaml, vars: { group: bri, n: 2, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_3: !include { file: segment.yaml, vars: { group: bri, n: 3, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_4: !include { file: segment.yaml, vars: { group: bri, n: 4, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_5: !include { file: segment.yaml, vars: { group: bri, n: 5, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_6: !include { file: segment.yaml, vars: { group: bri, n: 6, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_7: !include { file: segment.yaml, vars: { group: bri, n: 7, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_8: !include { file: segment.yaml, vars: { group: bri, n: 8, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_9: !include { file: segment.yaml, vars: { group: bri, n: 9, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
+  bri_seg_10: !include { file: segment.yaml, vars: { group: bri, n: 10, count: 10, value: ms_brightness, color_on: "0xFF6A1A" } }
 
 # -------------------------------------------
 # State

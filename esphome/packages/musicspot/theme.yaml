@@ -94,21 +94,21 @@ font:
 # Icons: the design's own SVGs, white on transparent, recoloured per state in LVGL
 # -------------------------------------------
 image:
-  - { file: icons/play.svg,          id: ms_ic_play,          resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/pause.svg,         id: ms_ic_pause,         resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/prev.svg,          id: ms_ic_prev,          resize: 26x26, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/next.svg,          id: ms_ic_next,          resize: 26x26, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/shuffle.svg,       id: ms_ic_shuffle,       resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/heart.svg,         id: ms_ic_heart,         resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/heart_outline.svg, id: ms_ic_heart_outline, resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/search.svg,        id: ms_ic_search,        resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/chevron_up.svg,    id: ms_ic_up,            resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/chevron_down.svg,  id: ms_ic_down,          resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/back.svg,          id: ms_ic_back,          resize: 16x16, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/close.svg,         id: ms_ic_close,         resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/plus.svg,          id: ms_ic_plus,          resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/minus.svg,         id: ms_ic_minus,         resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
-  - { file: icons/check.svg,         id: ms_ic_check,         resize: 14x14, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/play.svg,          id: ms_ic_play,          resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/pause.svg,         id: ms_ic_pause,         resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/prev.svg,          id: ms_ic_prev,          resize: 26x26, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/next.svg,          id: ms_ic_next,          resize: 26x26, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/shuffle.svg,       id: ms_ic_shuffle,       resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/heart.svg,         id: ms_ic_heart,         resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/heart_outline.svg, id: ms_ic_heart_outline, resize: 22x22, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/search.svg,        id: ms_ic_search,        resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/chevron_up.svg,    id: ms_ic_up,            resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/chevron_down.svg,  id: ms_ic_down,          resize: 28x28, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/back.svg,          id: ms_ic_back,          resize: 16x16, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/close.svg,         id: ms_ic_close,         resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/plus.svg,          id: ms_ic_plus,          resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/minus.svg,         id: ms_ic_minus,         resize: 18x18, type: GRAYSCALE, transparency: alpha_channel }
+  - { platform: file, file: icons/check.svg,         id: ms_ic_check,         resize: 14x14, type: GRAYSCALE, transparency: alpha_channel }
 
 # -------------------------------------------
 # Reusable styles
