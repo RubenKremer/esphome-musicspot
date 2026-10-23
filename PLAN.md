@@ -139,6 +139,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.11 Details: page transitions, loading skeleton instead of "Waiting for Home Assistant", scrolling long titles, brightness slider synced with the backlight
 - [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
 - [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
+- [ ] P7.14 Decide on the debug sensors (reset reason, heap, PSRAM): keep as diagnostics or move to an optional package before release
 
 ## Phase 8 — Optional: Music Assistant backend (later)
 Why: Spotify forgets idle Google Cast speakers and the Web API can't wake them (Findings 2026-10-23).
@@ -219,6 +220,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-24: LVGL `long_mode: DOT` only truncates when the label has a fixed height; otherwise it wraps. A long artist wrapped and pushed the time under the progress bar. All DOT labels now get a one-line height (artist cropped with …).
 - 2026-10-24: Albums reboot (and later the Now Playing cover) = abort in `operator new` creating `runtime_image::JpegDecoder` from `online_image::update()`: the internal heap ran out, not PSRAM. ESPHome's psram setup only enables capability-based PSRAM allocation, so `new` uses internal RAM. Fix in the board package: `CONFIG_SPIRAM_USE_MALLOC` (> 4 KB to PSRAM, 48 KB internal reserve) and Wi-Fi/LwIP buffers in PSRAM. Debug sensors (reset reason, heap free/largest block, PSRAM) added to verify.
 - 2026-10-24: PSRAM malloc fix confirmed: Albums no longer reboots. Photo showed a 3-column grid (6 of 8 albums), a gap in the source selector and clipped artist lines: LVGL's default theme adds gaps between flex items unless `pad_row`/`pad_column` are set, and 4×84 + 3×10 px filled the 366 px exactly. All flex layouts now set both gaps explicitly; grid gap 8 px, tiles 132 px tall.
+- 2026-10-24: Panel feels noticeably snappier after the PSRAM malloc change (clean build): more internal RAM free, Wi-Fi/LwIP buffers in PSRAM, art over plain HTTP, images decoded one at a time.
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
