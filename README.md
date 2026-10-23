@@ -29,9 +29,9 @@ with a HACS integration that connects each panel to a Spotify account.
 3. **Settings → Devices & services → Add integration → MusicSpot.** When asked, enter your Spotify app's
    Client ID and Client Secret (you can reuse the app from the core Spotify integration), then sign in.
 4. **Link a panel:** on the MusicSpot account, click **Add panel** and pick the ESPHome device.
-   Set **Album art base URL** to a plain-HTTP LAN address of Home Assistant (e.g. `http://192.168.1.2:8123`;
-   change it later via the panel's **Reconfigure**)
-   for the fastest art downloads. The panel must have *Allow the device to perform Home Assistant actions* enabled.
+   Set **Album art base URL** to a plain-HTTP LAN address of Home Assistant (e.g. `http://192.168.1.2:8123`):
+   HTTPS makes the panel freeze while images load. You can change it later with the panel's **Reconfigure**.
+   The panel must have *Allow the device to perform Home Assistant actions* enabled.
 5. Optional, to see what it polls: add to `configuration.yaml`
    ```yaml
    logger:
