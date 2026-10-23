@@ -140,7 +140,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
 - [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
 - [ ] P7.14 Decide on the debug sensors (reset reason, heap, PSRAM): keep as diagnostics or move to an optional package before release
-- [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep mode** (Ruben, 2026-10-24; details to decide)
+- [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep timer** (D29)
 
 ## Phase 8 — Optional: Music Assistant backend (later)
 Why: Spotify forgets idle Google Cast speakers and the Web API can't wake them (Findings 2026-10-23).
@@ -187,6 +187,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D26 | Library lists get 40 px covers (deviation from design C); Albums tab is a 4×2 cover grid | Agreed (Ruben, 2026-10-23) | Costs up to 6–8 small image downloads per page |
 | D27 | No repeat control on the panel | Agreed (Ruben, 2026-10-23) | Design C has no place for it; use the Spotify app |
 | D28 | Icons are design C's own SVGs (`esphome/packages/musicspot/icons/`), rendered as recoloured ESPHome images, instead of an MDI font | Proposed | Pixel-faithful to the design; only ~15 icons needed |
+| D29 | Sleep mode = sleep timer: choose 15 / 30 / 60 min in Settings; the screen goes dark right away (touch lights it without cancelling), and playback pauses when the timer ends | Agreed (Ruben, 2026-10-24) | Timer runs in the integration so it survives a panel reboot; panel shows the remaining time on SETUP and can cancel it |
 
 ## Findings
 
