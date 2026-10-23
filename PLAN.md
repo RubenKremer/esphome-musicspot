@@ -128,6 +128,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ### UI polish (do before P7.6)
 The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol stay untouched.
 - [ ] P7.7 Design mockups first: clickable 480×480 HTML mockups of all screens, with the panel's colour/font limits; iterate there, not by reflashing
+      (baseline of the current UI: `design/mockups/current-ui.html`, 2026-10-23)
 - [ ] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles
 - [ ] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls)
 - [ ] P7.10 Design system: type scale, 8 px grid, dark palette with one accent, pressed/disabled states, wall-panel touch targets; Now Playing layout with more room for art
@@ -191,6 +192,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-22: Panel events arrive as `esphome.musicspot_input` with HA-added `device_id` (e.g. `awake` value `1` on touch after idle); all data values are strings.
 - 2026-10-23: P4 on device: art, next/previous, shuffle/repeat, seek and awake-based polling work. Bugs found: device list not refreshed when playback moves elsewhere (fixed: refresh on active-device change), Google Cast speaker disappears from the device list once playback leaves it (mitigated: D15). "Add panel" button showed only a + icon — browser cache; fine after a hard refresh.
 - 2026-10-23: After moving playback Google → phone, transferring back to the (remembered) Google returns 404 and the speaker is dropped — D15 keeps it visible but cannot revive it; Spotify-side limitation, documented in README. Seek jumped back for a few seconds because Spotify reports the old position briefly: panel now jumps locally and the integration ignores position-only changes for 4 s after a seek.
+- 2026-10-23: Mockup of the current UI shows the Browse column is ~9 px too tall: the 6th row ends at y=425, under the 64 px navigation bar (starts at y=416). Header 48 + empty label ~17 + 6×54 rows + gaps exceeds 416.
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,

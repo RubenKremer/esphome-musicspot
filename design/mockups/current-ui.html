@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MusicSpot Current UI</title>
+<!-- Mockup of the firmware as of commit 748854b (esphome/packages/musicspot/core.yaml).
+     Sizes and colours are copied 1:1; LVGL default-theme parts (sliders, button radius,
+     shadows) are approximated. Icons: LVGL's built-in symbols are Font Awesome 4 glyphs. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+  :root {
+    --page-bg: #e9e9ec; --page-fg: #1b1b1f; --page-muted: #5b5b66; --bezel: #1c1c1e;
+    --chip-bg: #ffffff; --chip-border: #c9c9d1;
+    /* panel colours, straight from core.yaml */
+    --black: #000000; --row: #161616; --nav: #101010; --btn: #222222; --toast: #2a2a2a;
+    --placeholder-icon: #3a3a3a; --white: #ffffff; --gray: #9a9a9a; --accent: #1db954;
+    --offline: #b00020;
+    /* LVGL default theme primary (sliders) */
+    --lv-primary: #2196f3; --lv-primary-muted: rgba(33, 150, 243, .3);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #121214; --page-fg: #ececf1; --page-muted: #a0a0ad; --bezel: #2a2a2e;
+      --chip-bg: #1d1d21; --chip-border: #3a3a41;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page-bg: #121214; --page-fg: #ececf1; --page-muted: #a0a0ad; --bezel: #2a2a2e;
+    --chip-bg: #1d1d21; --chip-border: #3a3a41;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px; background: var(--page-bg); color: var(--page-fg);
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  p.note { margin: 0; max-width: 560px; color: var(--page-muted); text-align: center; }
+  .bezel { background: var(--bezel); padding: 22px; border-radius: 18px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .scaler { width: 480px; height: 480px; }
+
+  /* ---------------- the 480x480 screen ---------------- */
+  .screen {
+    position: relative; width: 480px; height: 480px; overflow: hidden; background: var(--black);
+    color: var(--white); font-family: Roboto, sans-serif; user-select: none;
+  }
+  .page { position: absolute; inset: 0 0 auto 0; height: 416px; display: none; }
+  .page.active { display: flex; }
+  .fa { line-height: 1; }
+  .ico20 { font-size: 20px; } .ico28 { font-size: 28px; } .ico48 { font-size: 48px; }
+  .t-title { font-size: 24px; } .t-body { font-size: 18px; } .t-small { font-size: 14px; }
+  .ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  button { font: inherit; color: inherit; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center; }
+  button:active { filter: brightness(1.4); }
+  /* LVGL default button: rounded, small shadow */
+  .lv-btn { border-radius: 10px; box-shadow: 0 3px 6px rgba(0,0,0,.55); }
+
+  /* slider (LVGL default theme: muted primary track, primary indicator + knob) */
+  .slider { position: relative; height: 8px; border-radius: 4px; background: var(--lv-primary-muted); cursor: pointer; }
+  .slider .ind { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--lv-primary); }
+  .slider .knob { position: absolute; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: var(--lv-primary); }
+  .slider.thin { height: 6px; }
+
+  /* Now Playing */
+  #p-now { flex-direction: column; align-items: center; padding: 10px; gap: 6px; }
+  .art { width: 220px; height: 220px; border-radius: 8px; background: var(--row); position: relative; overflow: hidden; flex: none; display: grid; place-items: center; }
+  .art .fa { color: var(--placeholder-icon); }
+  .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #np-title, #np-artist { width: 100%; text-align: center; }
+  #np-artist { color: var(--gray); }
+  .times { width: 90%; height: 20px; display: flex; justify-content: space-between; align-items: center; color: var(--gray); flex: none; }
+  .controls { width: 100%; height: 64px; display: flex; justify-content: space-evenly; align-items: center; flex: none; }
+  .ctl-trans { background: transparent; }
+  #btn-play { width: 60px; height: 60px; border-radius: 30px; background: var(--white); color: #000; box-shadow: 0 3px 6px rgba(0,0,0,.55); }
+
+  /* Browse */
+  #p-browse { flex-direction: column; padding: 8px; gap: 4px; overflow: hidden; }
+  .bhead { height: 48px; display: flex; align-items: center; gap: 6px; flex: none; }
+  .bhead .sq { background: var(--btn); height: 44px; flex: none; }
+  .bhead .sq[disabled] { opacity: .45; cursor: default; }
+  #b-title { flex: 1; min-width: 0; }
+  #b-pager { color: var(--gray); }
+  #b-empty { color: var(--gray); min-height: 17px; flex: none; }
+  .row { height: 54px; flex: none; background: var(--row); border-radius: 8px; padding: 3px; display: flex; align-items: center; text-align: left; }
+  .row .thumb { width: 48px; height: 48px; border-radius: 2px; flex: none; }
+  .row .txt { flex: 1; min-width: 0; height: 48px; padding-left: 8px; display: flex; flex-direction: column; justify-content: space-between; }
+  .row .sub { color: var(--gray); }
+
+  /* Settings */
+  #p-settings { flex-direction: column; padding: 10px; gap: 4px; }
+  #s-empty { color: var(--gray); min-height: 22px; flex: none; }
+  .dev { height: 42px; flex: none; background: var(--row); border-radius: 8px; padding: 0 12px; display: flex; align-items: center; justify-content: flex-start; }
+  .dev.active { background: var(--accent); }
+  .srow { height: 40px; display: flex; align-items: center; gap: 14px; flex: none; }
+  .srow .fa { color: var(--gray); width: 28px; }
+  .srow .slider { flex: 1; }
+
+  /* top layer */
+  .navbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: var(--nav); padding: 6px; display: flex; justify-content: space-evenly; align-items: center; }
+  .navbar button { width: 140px; height: 52px; background: var(--nav); }
+  .toast { position: absolute; left: 5%; width: 90%; bottom: 76px; background: var(--toast); padding: 10px; border-radius: 8px; text-align: center; display: none; }
+  .offline { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); background: var(--offline); padding: 6px; border-radius: 6px; white-space: nowrap; display: none; }
+  .busy { position: absolute; left: 200px; top: 200px; width: 80px; height: 80px; display: none; }
+  .busy::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 8px solid var(--lv-primary-muted); }
+  .busy::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 8px solid transparent; border-top-color: var(--lv-primary); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------------- controls outside the screen ---------------- */
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 560px; }
+  .tools button { background: var(--chip-bg); color: var(--page-fg); border: 1px solid var(--chip-border); border-radius: 999px; padding: 6px 12px; font: 13px system-ui, sans-serif; }
+  .tools button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 560px) {
+    .bezel { padding: 10px; border-radius: 12px; }
+    .scaler { width: calc(100vw - 52px); height: calc(100vw - 52px); }
+    .screen { transform-origin: 0 0; transform: scale(calc((100vw - 52px) / 480px)); }
+  }
+</style>
+</head>
+<body>
+  <h1>MusicSpot panel — current UI</h1>
+  <p class="note">480×480 mockup of the firmware as it is now (commit 748854b). Click the bottom bar, rows and buttons; long-press a browse row to queue. Sizes and colours match <code>core.yaml</code>; sliders and button shapes approximate LVGL's default theme.</p>
+
+  <div class="bezel"><div class="scaler"><div class="screen" id="screen">
+
+    <!-- Now Playing -->
+    <section class="page active" id="p-now">
+      <div class="art"><i class="fa fa-music ico48"></i><img id="np-art" alt="" src="https://i.scdn.co/image/ab67616d00001e027f9002f34f60077d91309783" onerror="this.remove()"></div>
+      <div id="np-title" class="t-title ellipsis">Out Of Me</div>
+      <div id="np-artist" class="t-body ellipsis">Eric Luttrell • Into Clouds</div>
+      <div class="slider thin" id="np-progress" style="width:90%;flex:none"><div class="ind"></div><div class="knob"></div></div>
+      <div class="times t-small"><span id="np-elapsed">0:56</span><span id="np-duration">5:09</span></div>
+      <div class="controls">
+        <button class="ctl-trans" style="width:56px;height:56px" id="btn-shuffle" title="Shuffle"><i class="fa fa-random ico20"></i></button>
+        <button class="ctl-trans" style="width:64px;height:64px" title="Previous"><i class="fa fa-step-backward ico28"></i></button>
+        <button id="btn-play" title="Play/pause"><i class="fa fa-pause ico28"></i></button>
+        <button class="ctl-trans" style="width:64px;height:64px" title="Next"><i class="fa fa-step-forward ico28"></i></button>
+        <button class="ctl-trans" style="width:56px;height:56px" id="btn-repeat" title="Repeat"><span class="ico20"><i class="fa fa-retweet"></i><span id="rep1"></span></span></button>
+      </div>
+    </section>
+
+    <!-- Browse -->
+    <section class="page" id="p-browse">
+      <div class="bhead">
+        <button class="sq lv-btn" style="width:48px" id="b-back" title="Back"><i class="fa fa-chevron-left ico20"></i></button>
+        <div id="b-title" class="t-title ellipsis">Library</div>
+        <button class="sq lv-btn" style="width:44px" id="b-prev" title="Previous page"><i class="fa fa-chevron-up ico20"></i></button>
+        <span id="b-pager" class="t-small"></span>
+        <button class="sq lv-btn" style="width:44px" id="b-next" title="Next page"><i class="fa fa-chevron-down ico20"></i></button>
+      </div>
+      <div id="b-empty" class="t-small"></div>
+      <div id="b-rows" style="display:contents"></div>
+    </section>
+
+    <!-- Settings -->
+    <section class="page" id="p-settings">
+      <div class="t-title" style="flex:none">Play on</div>
+      <div id="s-empty" class="t-body"></div>
+      <div id="s-devs" style="display:contents"></div>
+      <div class="srow"><i class="fa fa-volume-up ico20"></i><div class="slider" id="s-vol"><div class="ind"></div><div class="knob"></div></div></div>
+      <div class="srow"><i class="fa fa-eye ico20"></i><div class="slider" id="s-bri"><div class="ind"></div><div class="knob"></div></div></div>
+    </section>
+
+    <!-- top layer -->
+    <nav class="navbar">
+      <button class="lv-btn" data-page="p-now" title="Now Playing"><i class="fa fa-music ico28"></i></button>
+      <button class="lv-btn" data-page="p-browse" title="Browse"><i class="fa fa-th-list ico28"></i></button>
+      <button class="lv-btn" data-page="p-settings" title="Settings"><i class="fa fa-cog ico28"></i></button>
+    </nav>
+    <div class="busy" id="busy"></div>
+    <div class="toast t-body ellipsis" id="toast"></div>
+    <div class="offline t-small" id="offline">Not connected to Home Assistant</div>
+  </div></div></div>
+
+  <div class="tools" aria-label="Mockup states">
+    <button data-state="offline" aria-pressed="false">Offline banner</button>
+    <button data-state="busy" aria-pressed="false">Busy spinner</button>
+    <button data-state="idle" aria-pressed="false">Nothing playing</button>
+    <button data-state="noart" aria-pressed="false">No album art</button>
+    <button data-state="nodevices" aria-pressed="false">No devices</button>
+    <button data-state="toast">Show toast</button>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const DUR = 309920;
+  const st = { playing: true, pos: 56951, shuffle: true, repeat: "off", vol: 12, bri: 100, active: 0, seeking: false };
+  const art = $("np-art");
+
+  // ---- sliders ----
+  function setSlider(el, frac) {
+    frac = Math.max(0, Math.min(1, frac));
+    el.querySelector(".ind").style.width = (frac * 100) + "%";
+    el.querySelector(".knob").style.left = (frac * 100) + "%";
+  }
+  function dragSlider(el, onMove, onRelease) {
+    el.addEventListener("pointerdown", (e) => {
+      el.setPointerCapture(e.pointerId);
+      const at = (ev) => { const r = el.getBoundingClientRect(); return (ev.clientX - r.left) / r.width; };
+      const move = (ev) => onMove(Math.max(0, Math.min(1, at(ev))));
+      move(e);
+      el.onpointermove = move;
+      el.onpointerup = (ev) => { el.onpointermove = el.onpointerup = null; onRelease && onRelease(Math.max(0, Math.min(1, at(ev)))); };
+    });
+  }
+  const fmt = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+
+  // ---- Now Playing ----
+  function renderNow() {
+    $("btn-play").innerHTML = `<i class="fa fa-${st.playing ? "pause" : "play"} ico28"></i>`;
+    $("btn-shuffle").style.color = st.shuffle ? "var(--accent)" : "var(--gray)";
+    $("btn-repeat").style.color = st.repeat === "off" ? "var(--gray)" : "var(--accent)";
+    $("rep1").textContent = st.repeat === "track" ? " 1" : "";
+  }
+  $("btn-play").onclick = () => { st.playing = !st.playing; renderNow(); };
+  $("btn-shuffle").onclick = () => { st.shuffle = !st.shuffle; renderNow(); };
+  $("btn-repeat").onclick = () => { st.repeat = { off: "context", context: "track", track: "off" }[st.repeat]; renderNow(); };
+  dragSlider($("np-progress"), (f) => { st.seeking = true; setSlider($("np-progress"), f); },
+    (f) => { st.seeking = false; st.pos = f * DUR; });
+  setInterval(() => {
+    if (st.playing && !idle) st.pos = Math.min(DUR, st.pos + 500);
+    if (idle) return;
+    $("np-elapsed").textContent = fmt(st.pos);
+    $("np-duration").textContent = fmt(DUR);
+    if (!st.seeking) setSlider($("np-progress"), st.pos / DUR);
+  }, 500);
+
+  // ---- Browse ----
+  const grad = (a, b) => `linear-gradient(135deg, ${a}, ${b})`;
+  const LIB = { title: "Library", back: false, page: 1, pages: 1, rows: [
+    { t: "Playlists", s: "Your playlists", open: "playlists" },
+    { t: "Liked Songs", s: "Your saved tracks" },
+    { t: "Albums", s: "Your saved albums" },
+    { t: "Recently played", s: "" },
+  ]};
+  const PL = { title: "Playlists", back: true, page: 1, pages: 3, rows: [
+    { t: "Daily Mix 1", s: "50 songs", th: grad("#7b2ff7", "#f107a3") },
+    { t: "Discover Weekly", s: "30 songs", th: grad("#0f9b0f", "#c7f464") },
+    { t: "Into Clouds — favourites", s: "13 songs", th: grad("#355c7d", "#c06c84") },
+    { t: "Café del Mar", s: "120 songs", th: grad("#f7971e", "#ffd200") },
+    { t: "Röyksopp radio", s: "Ruben Kremer", th: grad("#1d2b64", "#f8cdda") },
+    { t: "Short list", s: "8 songs", th: grad("#3a3a3a", "#9a9a9a") },
+  ]};
+  let view = LIB;
+  function renderBrowse() {
+    $("b-title").textContent = view.title;
+    $("b-pager").textContent = view.pages > 1 ? `${view.page}/${view.pages}` : "";
+    $("b-back").disabled = !view.back;
+    $("b-prev").disabled = view.page <= 1;
+    $("b-next").disabled = view.page >= view.pages;
+    $("b-rows").innerHTML = "";
+    view.rows.forEach((r) => {
+      const b = document.createElement("button");
+      b.className = "row lv-btn";
+      b.innerHTML = (r.th ? `<span class="thumb" style="background:${r.th}"></span>` : "") +
+        `<span class="txt"><span class="t-body ellipsis">${r.t}</span><span class="sub t-small ellipsis">${r.s}</span></span>`;
+      let timer = null, long = false;
+      b.onpointerdown = () => { long = false; timer = setTimeout(() => { long = true; toast(r.open ? "Only songs can be added to the queue" : `Queued: ${r.t}`); }, 500); };
+      b.onpointerup = b.onpointerleave = () => clearTimeout(timer);
+      b.onclick = () => {
+        if (long) return;
+        if (r.open === "playlists") { view = PL; renderBrowse(); }
+        else if (r.th) { $("np-title").textContent = r.t; st.pos = 0; st.playing = true; renderNow(); show("p-now"); }
+        else toast("Mockup: only Playlists opens");
+      };
+      $("b-rows").appendChild(b);
+    });
+  }
+  $("b-back").onclick = () => { view = LIB; renderBrowse(); };
+  $("b-prev").onclick = () => { if (view.page > 1) { view.page--; renderBrowse(); } };
+  $("b-next").onclick = () => { if (view.page < view.pages) { view.page++; renderBrowse(); } };
+
+  // ---- Settings ----
+  let devices = ["Thijmen's Google", "Ruben's phone", "Living room"];
+  function renderDevs() {
+    $("s-empty").textContent = devices.length ? "" : "No devices found.\nOpen Spotify on a speaker, phone or computer.";
+    $("s-empty").style.whiteSpace = "pre-line";
+    $("s-devs").innerHTML = "";
+    devices.forEach((d, i) => {
+      const b = document.createElement("button");
+      b.className = "dev lv-btn t-body" + (i === st.active ? " active" : "");
+      b.innerHTML = `<span class="ellipsis" style="width:90%;text-align:left">${d}</span>`;
+      b.onclick = () => { st.active = i; renderDevs(); };
+      $("s-devs").appendChild(b);
+    });
+  }
+  dragSlider($("s-vol"), (f) => setSlider($("s-vol"), f));
+  dragSlider($("s-bri"), (f) => { f = Math.max(.05, f); setSlider($("s-bri"), (f - .05) / .95); $("screen").style.filter = `brightness(${.15 + .85 * f})`; });
+
+  // ---- navigation + top layer ----
+  function show(id) { document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === id)); }
+  document.querySelectorAll(".navbar button").forEach((b) => b.onclick = () => show(b.dataset.page));
+  let toastTimer = null;
+  function toast(text) {
+    const t = $("toast"); t.textContent = text; t.style.display = "block";
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = "none", 2500);
+  }
+
+  // ---- mockup states ----
+  let idle = false;
+  document.querySelectorAll(".tools button").forEach((b) => b.onclick = () => {
+    const s = b.dataset.state;
+    if (s === "toast") return toast("Queued: Out Of Me");
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on);
+    if (s === "offline") $("offline").style.display = on ? "block" : "none";
+    if (s === "busy") $("busy").style.display = on ? "block" : "none";
+    if (s === "noart") art.style.display = on ? "none" : "";
+    if (s === "nodevices") { devices = on ? [] : ["Thijmen's Google", "Ruben's phone", "Living room"]; renderDevs(); }
+    if (s === "idle") {
+      idle = on;
+      $("np-title").textContent = on ? "Nothing playing" : "Out Of Me";
+      $("np-artist").textContent = on ? "Pick something in Browse" : "Eric Luttrell • Into Clouds";
+      art.style.display = on ? "none" : "";
+      $("np-elapsed").textContent = $("np-duration").textContent = on ? "" : "";
+      if (on) setSlider($("np-progress"), 0);
+    }
+  });
+
+  setSlider($("s-vol"), st.vol / 100);
+  setSlider($("s-bri"), 1);
+  renderNow(); renderBrowse(); renderDevs();
+})();
+</script>
+</body>
+</html>
