@@ -86,6 +86,24 @@ http_request:
   verify_ssl: false
   timeout: 10s
 
+# Diagnostics while chasing the Albums-grid reboot: reset reason + memory in HA and the log
+debug:
+  update_interval: 10s
+
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: Reset reason
+
+sensor:
+  - platform: debug
+    free:
+      name: Heap free
+    block:
+      name: Heap largest block
+    psram:
+      name: PSRAM free
+
 time:
   - platform: homeassistant
     id: ms_time
