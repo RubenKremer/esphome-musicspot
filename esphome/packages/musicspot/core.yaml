@@ -238,8 +238,15 @@ api:
               return pages > 1 ? str_sprintf("%d/%d", (int) page, (int) pages) : std::string("");
         - lvgl.label.update:
             id: ms_browse_empty
-            text: !lambda |-
-              return titles.empty() ? std::string("Nothing here") : std::string("");
+            text: "Nothing here"
+        # The message line only takes space when there are no rows; 6 rows + header fill the page.
+        - if:
+            condition:
+              lambda: return titles.empty();
+            then:
+              - lvgl.widget.show: ms_browse_empty
+            else:
+              - lvgl.widget.hide: ms_browse_empty
         - lvgl.widget.update:
             id: ms_browse_back
             state:

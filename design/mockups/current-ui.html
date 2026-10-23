@@ -252,6 +252,8 @@
     $("b-back").disabled = !view.back;
     $("b-prev").disabled = view.page <= 1;
     $("b-next").disabled = view.page >= view.pages;
+    $("b-empty").textContent = "Nothing here";
+    $("b-empty").style.display = view.rows.length ? "none" : "";
     $("b-rows").innerHTML = "";
     view.rows.forEach((r) => {
       const b = document.createElement("button");
