@@ -88,7 +88,7 @@ font:
     id: ms_digits124     # idle clock
     size: 124
     bpp: 4
-    glyphs: "0123456789"
+    glyphs: "0123456789:"
 
 # -------------------------------------------
 # Icons: the design's own SVGs, white on transparent, recoloured per state in LVGL

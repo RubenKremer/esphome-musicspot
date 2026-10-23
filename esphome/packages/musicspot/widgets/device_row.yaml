@@ -8,6 +8,7 @@ layout:
   type: flex
   flex_flow: ROW
   flex_align_cross: CENTER
+  flex_align_track: CENTER
   pad_column: 12
 on_short_click:
   - script.execute:

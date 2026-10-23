@@ -66,6 +66,7 @@ globals:
   - { id: ms_art_url, type: std::string, initial_value: '""' }
   - { id: ms_volume, type: int, initial_value: "0" }
   - { id: ms_vol_drag, type: bool, initial_value: "false" }
+  - { id: ms_vol_hold_until, type: uint32_t, initial_value: "0" }
   - { id: ms_brightness, type: int, initial_value: "100" }
   - { id: ms_grid, type: bool, initial_value: "false" }
   - { id: ms_now_index, type: int, initial_value: "-1" }
@@ -437,7 +438,8 @@ api:
               - lvgl.widget.show: ms_ic_heart_off_img
         - if:
             condition:
-              lambda: return !id(ms_vol_drag);
+              # Ignore Spotify's stale volume while dragging and for 4 s after release
+              lambda: return !id(ms_vol_drag) && (int32_t) (millis() - id(ms_vol_hold_until)) >= 0;
             then:
               - lambda: id(ms_volume) = volume;
               - lvgl.slider.update:
@@ -613,6 +615,14 @@ interval:
                 text: !lambda |-
                   int s = id(ms_dur_ms) / 1000;
                   return str_sprintf("/ %d:%02d", s / 60, s % 60);
+            - lvgl.widget.update:
+                id: ms_np_dur
+                x: !lambda |-
+                  int32_t pos = id(ms_pos_ms);
+                  if (id(ms_playing)) pos += millis() - id(ms_pos_at);
+                  if (pos > id(ms_dur_ms)) pos = id(ms_dur_ms);
+                  int s = pos / 1000;
+                  return (int) str_sprintf("%d:%02d", s / 60, s % 60).size() * 24 + 8;
             - if:
                 condition:
                   lambda: return !id(ms_seeking);
@@ -837,6 +847,7 @@ lvgl:
                           type: flex
                           flex_flow: ROW
                           flex_align_cross: CENTER
+                          flex_align_track: CENTER
                           pad_column: 8
                         on_click:
                           - script.execute: { id: ms_nav, screen: 2 }
@@ -907,22 +918,22 @@ lvgl:
                               height: 4
                           - obj:
                               width: 100%
-                              height: SIZE_CONTENT
-                              layout:
-                                type: flex
-                                flex_flow: ROW
-                                flex_align_cross: END
-                                pad_column: 8
+                              height: 52
+                              scrollable: false
                               widgets:
                                 - label:
                                     id: ms_np_pos
                                     text: "0:00"
+                                    align: BOTTOM_LEFT
                                     text_font: ms_digits40
                                     text_color: ms_c_fg
+                                # x follows the time's width: IBM Plex Mono advances 0.6 em = 24 px per glyph
                                 - label:
                                     id: ms_np_dur
                                     text: ""
-                                    pad_bottom: 4
+                                    align: BOTTOM_LEFT
+                                    x: 104
+                                    y: -6
                                     text_font: ms_mono16
                                     text_color: ms_c_dim
               # Progress: 2 px line, accent fill, 3x12 playhead
@@ -1046,6 +1057,7 @@ lvgl:
                     type: flex
                     flex_flow: ROW
                     flex_align_cross: CENTER
+                    flex_align_track: CENTER
                     pad_column: 12
                   widgets:
                     - label: { text: "VOL", styles: ms_st_label }
@@ -1099,7 +1111,9 @@ lvgl:
                                     id(ms_volume) = (int) x;
                                 - script.execute: ms_vol_render
                               on_release:
-                                - lambda: id(ms_vol_drag) = false;
+                                - lambda: |-
+                                    id(ms_vol_drag) = false;
+                                    id(ms_vol_hold_until) = millis() + 4000;
                                 - script.execute:
                                     id: ms_send_input
                                     type: control
@@ -1162,6 +1176,7 @@ lvgl:
                           type: flex
                           flex_flow: ROW
                           flex_align_cross: CENTER
+                          flex_align_track: CENTER
                           pad_column: 10
                         widgets:
                           - label: { text: "SRC", styles: ms_st_label }
@@ -1186,6 +1201,7 @@ lvgl:
                                       flex_flow: ROW
                                       flex_align_main: CENTER
                                       flex_align_cross: CENTER
+                                      flex_align_track: CENTER
                                       pad_column: 8
                                     widgets:
                                       - obj: { width: 6, height: 6, bg_color: ms_c_spotify, bg_opa: COVER }
@@ -1220,6 +1236,7 @@ lvgl:
                           type: flex
                           flex_flow: ROW
                           flex_align_cross: CENTER
+                          flex_align_track: CENTER
                           pad_column: 12
                         widgets:
                           - button:
@@ -1232,6 +1249,7 @@ lvgl:
                                 type: flex
                                 flex_flow: ROW
                                 flex_align_cross: CENTER
+                                flex_align_track: CENTER
                                 pad_column: 6
                               on_click:
                                 - script.execute: { id: ms_send_input, type: back, arg: "", value: 0 }
@@ -1448,6 +1466,7 @@ lvgl:
                                 flex_flow: COLUMN
                                 flex_align_main: CENTER
                                 flex_align_cross: CENTER
+                                flex_align_track: CENTER
                                 pad_row: 8
                               widgets:
                                 - label: { id: ms_pg_n, text: "01", text_font: ms_mono16, text_color: ms_c_fg }
@@ -1510,6 +1529,7 @@ lvgl:
                     type: flex
                     flex_flow: ROW
                     flex_align_cross: CENTER
+                    flex_align_track: CENTER
                     pad_column: 14
                   widgets:
                     - label: { text: "Brightness", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
@@ -1634,6 +1654,7 @@ lvgl:
               type: flex
               flex_flow: ROW
               flex_align_cross: CENTER
+              flex_align_track: CENTER
               pad_column: 14
             widgets:
               - obj:

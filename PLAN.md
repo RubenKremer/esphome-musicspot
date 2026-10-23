@@ -87,7 +87,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [x] P3.2 `application_credentials` + OAuth2 config flow (account = config entry) — verified: account added via UI (Spotify sign-in), 2026-10-22
 - [x] P3.3 Spotify API client (own aiohttp client, D12), token refresh — verified: `/me` + `/me/player` calls succeed, 2026-10-22 (token refresh not yet observed)
 - [x] P3.4 Account coordinator: playback state; fast/slow polling; 429 `QUOTA_EXCEEDED` back-off — verified: debug log shows playback polled (0.2 s fetch), 2026-10-22 (fast mode and 429 path not yet exercised)
-- [ ] P3.5 Reauth flow when the token is revoked (deferred: test when D22 adds scopes)
+- [x] P3.5 Reauth flow when the token is revoked — verified: re-authentication for the new D22 scopes went smoothly, 2026-10-24
 - [x] P3.6 Diagnostics (redacted) — verified: downloaded from HA 2026-10-22; tokens, ids, names redacted. Gap found and fixed: `external_urls` leaked Spotify ids
 
 **Done when:** account adds via UI, playback state visible in logs, survives HA restart.
@@ -212,6 +212,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-23: "Not connected" banner appeared after closing the ESPHome dashboard log view: the log viewer is an API client too and `on_client_disconnected` fired for it. Fixed: banner follows `api.connected: state_subscription_only: true` (re-checked on connect/disconnect and every 10 s); `hello` only sent for clients whose info contains "Home Assistant".
 - 2026-10-23: Design C firmware + protocol v2 written (integration 0.4.0): PLAYING, LIBRARY (tabs, lists with 40 px covers, Albums grid), SETUP (output + brightness), idle clock after 2 min. New scopes `user-library-modify` and `user-follow-read` trigger one re-authentication (also the P3.5 test). Spotify `/me/library*` endpoints take `uris` as a query parameter (max 40); `contains` returns a list of booleans. Not yet validated in ESPHome.
 - 2026-10-24: ESPHome validation of design C: (1) static images need `platform: file` once `image:` also holds `online_image` entries; (2) a package var named `on` becomes a YAML boolean key, so `${on}` stays undefined — use `color_on`.
+- 2026-10-24: Design C on device. Fixes: LVGL puts a flex row's track at the top unless `flex_align_track: CENTER` (speaker chip text was top-aligned); duration label now placed by width of the monospace time (24 px/glyph) instead of flex; idle clock font lacked the `:` glyph (drawn as a box); volume holds the local value 4 s after release (Spotify reports the old value briefly).
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
