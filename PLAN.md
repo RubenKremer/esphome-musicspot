@@ -132,6 +132,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles
 - [ ] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls)
 - [ ] P7.10 Design system: type scale, 8 px grid, dark palette with one accent, pressed/disabled states, wall-panel touch targets; Now Playing layout with more room for art
+      (direction chosen: design set C, D18–D22)
 - [ ] P7.11 Details: page transitions, loading skeleton instead of "Waiting for Home Assistant", scrolling long titles, brightness slider synced with the backlight
 - [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
 - [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
@@ -170,6 +171,14 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D15 | Remember recently seen Spotify devices per account and keep them on the Devices screen | Proposed | The Web API drops idle Google Cast devices from `/me/player/devices`, so you couldn't switch back to one. Transfer to a remembered device may still fail (404); then it is forgotten and logged |
 | D16 | Playlists and albums open with a **Play all** row; tracks play inside their context (playlist/album/Liked Songs) | Proposed | Since Feb 2026 Spotify only lists items of playlists you own; Play all still works for followed playlists |
 | D17 | Firmware actions `show_toast` and `show_screen` | Proposed | Feedback for queueing (no 'play next') and jumping to Now Playing after starting playback |
+| D18 | UI polish follows Claude Design set "C" (`design/cyber-design/C · *.zip`): flat, square, hairlines, IBM Plex Sans/Mono, accent `#FF6A1A` | Proposed | Reviewed Now Playing + Library 2026-10-23: fits 480×480 incl. nav, cheaper for LVGL than the current UI |
+| D19 | Library source switch shows SPOTIFY (selected) plus an empty, inactive placeholder segment for Music Assistant | Agreed (Ruben, 2026-10-23) | Keeps the layout for Phase 8 without a fake option |
+| D20 | Now Playing header: `TRACK nn / NN` for album context; otherwise the context name (playlist name, LIKED SONGS, artist) | Agreed (Ruben, 2026-10-23) | Spotify only has track numbers for albums; playlist name needs a cached `GET /playlists/{id}` |
+| D21 | Library tabs PLAYLISTS / ALBUMS / ARTISTS / RECENT (RADIO dropped); Liked Songs is the first playlist row | Agreed (Ruben, 2026-10-23) | Spotify removed the APIs radio would need (2024) |
+| D22 | Like button and Artists tab add scopes `user-library-modify` and `user-follow-read` | Proposed | New users grant them at first sign-in; existing accounts re-authenticate once (setup detects missing scopes and starts reauth) |
+| D23 | Output screen: single-select for Spotify (one active device, volume only on that one); multi-room grouping only via Music Assistant (Phase 8) | Proposed | Spotify Connect plays on one device at a time and only sets volume on the active device |
+| D24 | Consolidate design C type scale to ~9 font assets (Sans 14/16/28, Mono 12/16/24, display digits 40 and 124 with only `0-9:/ `) | Proposed | The 8 designs use ~15 font/size/weight combinations; each is a separate bitmap font in flash |
+| D25 | Search: debounce typing (~600 ms) before calling Spotify; query sent as the event `arg` | Proposed | Protects the shared dev-mode quota; keystrokes stay on the device |
 
 ## Findings
 
@@ -193,6 +202,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-23: P4 on device: art, next/previous, shuffle/repeat, seek and awake-based polling work. Bugs found: device list not refreshed when playback moves elsewhere (fixed: refresh on active-device change), Google Cast speaker disappears from the device list once playback leaves it (mitigated: D15). "Add panel" button showed only a + icon — browser cache; fine after a hard refresh.
 - 2026-10-23: After moving playback Google → phone, transferring back to the (remembered) Google returns 404 and the speaker is dropped — D15 keeps it visible but cannot revive it; Spotify-side limitation, documented in README. Seek jumped back for a few seconds because Spotify reports the old position briefly: panel now jumps locally and the integration ignores position-only changes for 4 s after a seek.
 - 2026-10-23: Mockup of the current UI shows the Browse column is ~9 px too tall: the 6th row ends at y=425, under the 64 px navigation bar (starts at y=416). Header 48 + empty label ~17 + 6×54 rows + gaps exceeds 416. Fixed: message line hidden while rows are shown; last row now ends at y=404 (checked in the mockup).
+- 2026-10-23: Reviewed all 8 design C screens (Now playing, Library, Albums, Up next, Output rooms, Search, Settings, Idle clock). All fit 480×480 and LVGL; gaps are data/API (grouping, per-room volume, radio, track numbers outside albums), not rendering. New screens vs. today: Up next, Search with on-screen keyboard, Idle clock, Albums grid (8 covers/page).
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
