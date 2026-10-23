@@ -1,0 +1,28 @@
+# Up next row ${n}: update script. vars: n (1..5), idx (n - 1).
+# Widget: widgets/queue_row.yaml. Read-only: Spotify's queue can't be reordered or jumped into.
+
+script:
+  - id: ms_q_row_${n}_set
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_q_titles).size() > ${idx};
+          then:
+            - lvgl.label.update:
+                id: ms_q_row_${n}_num
+                text: !lambda |-
+                  return id(ms_q_nums).size() > ${idx} ? id(ms_q_nums)[${idx}] : std::string("");
+            - lvgl.label.update:
+                id: ms_q_row_${n}_title
+                text: !lambda return id(ms_q_titles)[${idx}];
+            - lvgl.label.update:
+                id: ms_q_row_${n}_artist
+                text: !lambda |-
+                  return id(ms_q_artists).size() > ${idx} ? id(ms_q_artists)[${idx}] : std::string("");
+            - lvgl.label.update:
+                id: ms_q_row_${n}_dur
+                text: !lambda |-
+                  return id(ms_q_durations).size() > ${idx} ? id(ms_q_durations)[${idx}] : std::string("");
+            - lvgl.widget.show: ms_q_row_${n}
+          else:
+            - lvgl.widget.hide: ms_q_row_${n}

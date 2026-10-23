@@ -114,7 +114,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 ## Phase 6 — Devices, queue, search
 - [x] P6.1 Device list push + transfer playback (implemented early in Phase 4 for P2.7; verify here) — verified on device 2026-10-23; transfer back to an idle Google Cast speaker fails (Spotify limitation, D15)
-- [ ] P6.2 Queue view (read-only, `GET /me/player/queue`)
+- [ ] P6.2 Queue view (read-only, `GET /me/player/queue`) — built 2026-10-24 (design C Up next, 5 rows/page, rows not tappable); not yet verified
 - [ ] P6.3 Search: LVGL keyboard → `search` input event → results as a browse page (10/page)
 
 ## Phase 7 — Polish & release
@@ -140,6 +140,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
 - [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
 - [ ] P7.14 Decide on the debug sensors (reset reason, heap, PSRAM): keep as diagnostics or move to an optional package before release
+- [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep mode** (Ruben, 2026-10-24; details to decide)
 
 ## Phase 8 — Optional: Music Assistant backend (later)
 Why: Spotify forgets idle Google Cast speakers and the Web API can't wake them (Findings 2026-10-23).

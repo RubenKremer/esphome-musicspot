@@ -22,6 +22,11 @@ packages:
   tile_6: !include { file: tile.yaml, vars: { n: 6, idx: 5 } }
   tile_7: !include { file: tile.yaml, vars: { n: 7, idx: 6 } }
   tile_8: !include { file: tile.yaml, vars: { n: 8, idx: 7 } }
+  queue_row_1: !include { file: queue_row.yaml, vars: { n: 1, idx: 0 } }
+  queue_row_2: !include { file: queue_row.yaml, vars: { n: 2, idx: 1 } }
+  queue_row_3: !include { file: queue_row.yaml, vars: { n: 3, idx: 2 } }
+  queue_row_4: !include { file: queue_row.yaml, vars: { n: 4, idx: 3 } }
+  queue_row_5: !include { file: queue_row.yaml, vars: { n: 5, idx: 4 } }
   device_row_1: !include { file: device_row.yaml, vars: { n: 1, idx: 0 } }
   device_row_2: !include { file: device_row.yaml, vars: { n: 2, idx: 1 } }
   device_row_3: !include { file: device_row.yaml, vars: { n: 3, idx: 2 } }
@@ -78,6 +83,10 @@ globals:
   - { id: ms_counts, type: std::vector<std::string> }
   - { id: ms_thumbs, type: std::vector<std::string> }
   - { id: ms_devices, type: std::vector<std::string> }
+  - { id: ms_q_nums, type: std::vector<std::string> }
+  - { id: ms_q_titles, type: std::vector<std::string> }
+  - { id: ms_q_artists, type: std::vector<std::string> }
+  - { id: ms_q_durations, type: std::vector<std::string> }
   - { id: ms_active_device, type: int, initial_value: "-1" }
   - { id: ms_awake, type: bool, initial_value: "true" }
   - { id: ms_idle, type: bool, initial_value: "false" }
@@ -374,6 +383,27 @@ script:
       - script.execute: ms_tile_8_load
       - script.wait: ms_tile_8_load
 
+  # Up next: open the page (PLAYING stays highlighted) and ask the integration for the queue
+  - id: ms_show_queue
+    then:
+      - script.execute:
+          id: ms_nav
+          screen: 0
+      - lvgl.page.show: ms_page_queue
+      - script.execute:
+          id: ms_send_input
+          type: queue_view
+          arg: ""
+          value: 0
+
+  - id: ms_q_refresh_rows
+    then:
+      - script.execute: ms_q_row_1_set
+      - script.execute: ms_q_row_2_set
+      - script.execute: ms_q_row_3_set
+      - script.execute: ms_q_row_4_set
+      - script.execute: ms_q_row_5_set
+
   - id: ms_refresh_device_rows
     then:
       - script.execute: ms_device_row_1_set
@@ -640,6 +670,54 @@ api:
               - lvgl.widget.hide: ms_lib_grid
               - lvgl.widget.show: ms_lib_list
         - script.execute: ms_refresh_rows
+
+    # Up next (read-only Spotify queue), 5 rows per page
+    - action: show_queue
+      variables:
+        context: string
+        now_title: string
+        now_artist: string
+        page: int
+        pages: int
+        nums: string[]
+        titles: string[]
+        artists: string[]
+        durations: string[]
+      then:
+        - lambda: |-
+            id(ms_q_nums) = nums;
+            id(ms_q_titles) = titles;
+            id(ms_q_artists) = artists;
+            id(ms_q_durations) = durations;
+        - lvgl.label.update:
+            id: ms_q_context
+            text: !lambda |-
+              return context.empty() ? std::string("") : std::string("SRC: ") + context;
+        - lvgl.label.update:
+            id: ms_q_now
+            text: !lambda |-
+              if (now_title.empty()) return std::string("Nothing playing");
+              return now_artist.empty() ? now_title : now_title + " \xE2\x80\x94 " + now_artist;
+        - lvgl.label.update:
+            id: ms_q_pg_n
+            text: !lambda return str_sprintf("%02d", (int) page);
+        - lvgl.label.update:
+            id: ms_q_pg_c
+            text: !lambda return str_sprintf("%02d", (int) pages);
+        - lvgl.widget.update:
+            id: ms_q_pg_up_img
+            image_recolor: !lambda "return page <= 1 ? lv_color_hex(0x3A3A3A) : lv_color_hex(0xEDEDED);"
+        - lvgl.widget.update:
+            id: ms_q_pg_dn_img
+            image_recolor: !lambda "return page >= pages ? lv_color_hex(0x3A3A3A) : lv_color_hex(0xEDEDED);"
+        - if:
+            condition:
+              lambda: return titles.empty();
+            then:
+              - lvgl.widget.show: ms_q_empty
+            else:
+              - lvgl.widget.hide: ms_q_empty
+        - script.execute: ms_q_refresh_rows
 
     - action: show_devices
       variables:
@@ -1264,7 +1342,7 @@ lvgl:
                         width: 64
                         styles: ms_st_box
                         on_click:
-                          - script.execute: { id: ms_toast, message: "Up next arrives in Phase 6" }
+                          - script.execute: ms_show_queue
                         widgets:
                           - label:
                               text: "QUEUE"
@@ -1743,6 +1821,203 @@ lvgl:
                         text_align: RIGHT
                         text_font: ms_mono12
                         text_color: ms_c_fg
+
+    # ---------------- UP NEXT (from QUEUE on PLAYING) ----------------
+    - id: ms_page_queue
+      bg_color: ms_c_bg
+      bg_opa: COVER
+      scrollable: false
+      widgets:
+        - obj:
+            width: 480
+            height: 415
+            align: TOP_MID
+            pad_top: 12
+            pad_left: 18
+            pad_right: 18
+            pad_bottom: 14
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+              pad_row: 6
+              pad_column: 0
+            widgets:
+              - obj:
+                  width: 100%
+                  height: 44
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 12
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        height: 40
+                        width: SIZE_CONTENT
+                        pad_left: 12
+                        pad_right: 12
+                        styles: ms_st_box
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 6
+                          pad_row: 0
+                        on_click:
+                          - script.execute:
+                              id: ms_nav
+                              screen: 0
+                        widgets:
+                          - image: { src: ms_ic_back, styles: ms_st_icon }
+                          - label:
+                              text: "BACK"
+                              text_font: ms_mono12
+                              text_color: ms_c_fg
+                              text_letter_space: 1
+                    - label:
+                        text: "UP NEXT"
+                        width: 10
+                        flex_grow: 1
+                        text_font: ms_mono12
+                        text_color: ms_c_fg
+                        text_letter_space: 1
+                    - label:
+                        id: ms_q_context
+                        text: ""
+                        width: 180
+                        long_mode: DOT
+                        height: 15  # one line, so DOT truncates instead of wrapping
+                        text_align: RIGHT
+                        styles: ms_st_label
+              # The current track
+              - obj:
+                  width: 100%
+                  height: 52
+                  styles: ms_st_box
+                  pad_left: 12
+                  pad_right: 12
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 12
+                    pad_row: 0
+                  widgets:
+                    - obj: { width: 8, height: 8, bg_color: ms_c_accent, bg_opa: COVER }
+                    - label:
+                        id: ms_q_now
+                        text: ""
+                        width: 10
+                        flex_grow: 1
+                        long_mode: DOT
+                        height: 21  # one line, so DOT truncates instead of wrapping
+                        text_font: ms_sans16
+                        text_color: ms_c_fg
+                    - label:
+                        text: "NOW"
+                        text_font: ms_mono12
+                        text_color: ms_c_accent
+                        text_letter_space: 1
+              # Queue rows + pager column
+              - obj:
+                  width: 100%
+                  height: 10
+                  flex_grow: 1
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_row: 0
+                    pad_column: 0
+                  widgets:
+                    - obj:
+                        width: 10
+                        flex_grow: 1
+                        height: 100%
+                        pad_right: 14
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: COLUMN
+                          pad_row: 0
+                          pad_column: 0
+                        widgets:
+                          - label:
+                              id: ms_q_empty
+                              text: "Nothing queued"
+                              pad_top: 14
+                              text_font: ms_sans14
+                              text_color: ms_c_dim
+                          - obj: !include { file: widgets/queue_row.yaml, vars: { n: 1 } }
+                          - obj: !include { file: widgets/queue_row.yaml, vars: { n: 2 } }
+                          - obj: !include { file: widgets/queue_row.yaml, vars: { n: 3 } }
+                          - obj: !include { file: widgets/queue_row.yaml, vars: { n: 4 } }
+                          - obj: !include { file: widgets/queue_row.yaml, vars: { n: 5 } }
+                    - obj:
+                        width: 64
+                        height: 100%
+                        border_width: 1
+                        border_side: [LEFT, BOTTOM]
+                        border_color: ms_c_line
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: COLUMN
+                          pad_row: 0
+                          pad_column: 0
+                        widgets:
+                          - button:
+                              width: 100%
+                              height: 10
+                              flex_grow: 1
+                              border_width: 1
+                              border_side: [BOTTOM]
+                              border_color: ms_c_line
+                              on_click:
+                                - script.execute:
+                                    id: ms_send_input
+                                    type: queue_page
+                                    arg: ""
+                                    value: -1
+                              widgets:
+                                - image: { id: ms_q_pg_up_img, src: ms_ic_up, align: CENTER, styles: ms_st_icon }
+                          - obj:
+                              width: 100%
+                              height: 80
+                              border_width: 1
+                              border_side: [BOTTOM]
+                              border_color: ms_c_line
+                              layout:
+                                type: flex
+                                flex_flow: COLUMN
+                                flex_align_main: CENTER
+                                flex_align_cross: CENTER
+                                flex_align_track: CENTER
+                                pad_row: 8
+                                pad_column: 0
+                              widgets:
+                                - label: { id: ms_q_pg_n, text: "01", text_font: ms_mono16, text_color: ms_c_fg }
+                                - obj: { width: 24, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                                - label: { id: ms_q_pg_c, text: "01", text_font: ms_mono12, text_color: ms_c_dim }
+                          - button:
+                              width: 100%
+                              height: 10
+                              flex_grow: 1
+                              on_click:
+                                - script.execute:
+                                    id: ms_send_input
+                                    type: queue_page
+                                    arg: ""
+                                    value: 1
+                              widgets:
+                                - image: { id: ms_q_pg_dn_img, src: ms_ic_down, align: CENTER, styles: ms_st_icon }
 
     # ---------------- IDLE CLOCK (after 2 min; any tap wakes) ----------------
     - id: ms_page_idle

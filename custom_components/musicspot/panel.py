@@ -7,6 +7,7 @@ keeps the matching Spotify ids.
 from __future__ import annotations
 
 import asyncio
+import math
 import secrets
 import time
 from typing import TYPE_CHECKING, Any
@@ -19,7 +20,7 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .api import SpotifyApiError, SpotifyNotFoundError
 from .art import ArtStore
-from .browse import GRID_SIZE, Browser, Row
+from .browse import GRID_SIZE, Browser, Row, _duration
 from .const import (
     ART_SIZE_NOW,
     ART_SIZE_THUMB,
@@ -40,6 +41,7 @@ _POSITION_TOLERANCE_MS = 2500
 _REFRESH_DELAY_S = 0.5
 # After a seek, Spotify may still report the old position; don't push it back to the panel.
 _SEEK_GRACE_S = 4.0
+_QUEUE_PAGE = 5  # Up next rows per page (design C)
 # First push after setup: wait up to 2 minutes for the panel's ESPHome actions.
 _REACHABLE_TRIES = 24
 _REACHABLE_INTERVAL_S = 5
@@ -103,6 +105,8 @@ class MusicSpotPanel:
         self._https_warned = False
         self._context_names: dict[str, str] = {}
         self._liked: dict[str, bool] = {}
+        self._queue: list[dict[str, Any]] = []
+        self._queue_page = 1
 
     # ---- lifecycle -------------------------------------------------------
 
@@ -467,8 +471,49 @@ class MusicSpotPanel:
         elif type_ == "tab":
             self._browser.select_tab(value)
             await self.async_push_browse()
+        elif type_ == "queue_view":
+            await self._async_load_queue()
+            self._queue_page = 1
+            await self.async_push_queue()
+        elif type_ == "queue_page":
+            self._queue_page = max(1, self._queue_page + (1 if value > 0 else -1))
+            await self.async_push_queue()
         else:
             LOGGER.debug("Input type %s is not handled yet", type_)
+
+    async def _async_load_queue(self) -> None:
+        """Fetch the user queue (read-only; Spotify returns up to ~20 upcoming items)."""
+        await self._call("set_busy", {"busy": True})
+        try:
+            data = await self.coordinator.api.get_queue()
+        except SpotifyApiError as err:
+            LOGGER.warning("Could not load the queue: %s", err)
+            data = {}
+        await self._call("set_busy", {"busy": False})
+        self._queue = [item for item in data.get("queue") or [] if item and item.get("uri")]
+
+    async def async_push_queue(self) -> None:
+        """Send one page of Up next (5 rows)."""
+        pages = max(1, math.ceil(len(self._queue) / _QUEUE_PAGE))
+        self._queue_page = min(self._queue_page, pages)
+        start = (self._queue_page - 1) * _QUEUE_PAGE
+        items = self._queue[start : start + _QUEUE_PAGE]
+        data = self.coordinator.data or {}
+        now = data.get("item") or {}
+        await self._call(
+            "show_queue",
+            {
+                "context": await self._context_text(data) if now else "",
+                "now_title": now.get("name", ""),
+                "now_artist": _artists(now),
+                "page": self._queue_page,
+                "pages": pages,
+                "nums": [f"{start + i + 1:02d}" for i in range(len(items))],
+                "titles": [item.get("name", "?") for item in items],
+                "artists": [_artists(item) for item in items],
+                "durations": [_duration(item.get("duration_ms")) for item in items],
+            },
+        )
 
     def _row(self, slot: int) -> Row | None:
         """Row behind a 1-based slot of the page the panel shows."""
@@ -644,3 +689,10 @@ def _pick_image(images: list[dict[str, Any]], size: int) -> str | None:
     if big_enough:
         return min(big_enough, key=lambda i: i.get("width") or 0)["url"]
     return max(candidates, key=lambda i: i.get("width") or 0)["url"]
+
+
+def _artists(item: dict[str, Any]) -> str:
+    """Artist names of a track, or the show name of an episode."""
+    if item.get("type") == "episode":
+        return (item.get("show") or {}).get("name", "")
+    return ", ".join(a.get("name", "") for a in item.get("artists", []))

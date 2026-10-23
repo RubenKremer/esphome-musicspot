@@ -37,6 +37,15 @@ Protocol v2 (design C, integration 0.4.0). Firmware and integration must be upda
 | `counts` | string[] | Right column: track count (`312`) or duration (`4:12`) |
 | `thumbs` | string[] | 40×40 (list) or 84×84 (grid) baseline JPEG URLs, or empty strings |
 
+### `show_queue`
+Up next (read-only Spotify queue), sent after a `queue_view` or `queue_page` event.
+| Field | Type | Notes |
+|---|---|---|
+| `context` | string | Shown as `SRC: <context>` (playlist name, `TRACK 02 / 13`, …) |
+| `now_title`, `now_artist` | string | The current track in the NOW box |
+| `page`, `pages` | int | 5 rows per page |
+| `nums`, `titles`, `artists`, `durations` | string[] | Up to 5 rows; numbers continue across pages |
+
 ### `show_devices`
 | Field | Type | Notes |
 |---|---|---|
@@ -71,6 +80,8 @@ Home Assistant adds the panel's `device_id`.
 | `queue` | | slot `1`–`6` | Long press on a browse row: add to queue |
 | `back` | | `0` | Library: up one folder |
 | `tab` | | `0`–`3` | Library tab selected |
+| `queue_view` | | `0` | QUEUE pressed on PLAYING: send the queue |
+| `queue_page` | | `-1` / `1` | Up next previous / next page |
 | `page` | | `-1` / `1` | Previous / next browse page |
 | `device` | | slot `1`–`5` | Transfer playback to that device |
 | `control` | `play_pause` \| `next` \| `previous` \| `shuffle` \| `like` | `0` | Transport (shuffle and like toggle; no repeat, D27) |
