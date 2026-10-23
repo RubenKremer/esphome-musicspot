@@ -74,7 +74,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [x] P2.5 API action `show_page(breadcrumb, page, pages, can_back, titles[], subtitles[], thumbs[])` (no ids: D11) — verified on device via Developer Tools, 2026-10-23
 - [x] P2.6 Browse screen: 6 fixed rows (48px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶ — verified on device via Developer Tools, 2026-10-23
 - [x] P2.7 API action `show_devices(names[], active)` + Devices screen (5 rows + volume slider) — verified on device 2026-10-23 (Settings tab); Google Cast limitation, see Findings
-- [ ] P2.8 API action `set_busy(bool)` + spinner overlay
+- [x] P2.8 API action `set_busy(bool)` + spinner overlay — verified on device while Browse pages load, 2026-10-23
 - [x] P2.9 Outgoing events `esphome.musicspot_input`: tap/queue (slot), back, page(±1), device (slot), control(cmd, value), awake, hello — verified: awake, tap, queue, back, page events seen with device_id, 2026-10-23
       — all pass the device's own identity
 - [ ] P2.10 Fallback screens: no connection to HA / nothing playing / no devices
