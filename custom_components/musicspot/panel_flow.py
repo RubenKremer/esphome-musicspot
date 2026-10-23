@@ -72,6 +72,35 @@ class PanelSubentryFlowHandler(ConfigSubentryFlow):
             errors=errors,
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Change the album art URL or default playback device of a panel."""
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_update_and_abort(
+                self._get_entry(),
+                subentry,
+                data_updates={
+                    CONF_ART_BASE_URL: (user_input.get(CONF_ART_BASE_URL) or "").rstrip("/"),
+                    CONF_DEFAULT_DEVICE: user_input.get(CONF_DEFAULT_DEVICE) or "",
+                },
+            )
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_ART_BASE_URL): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.URL)
+                ),
+                vol.Optional(CONF_DEFAULT_DEVICE): TextSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(schema, subentry.data),
+            description_placeholders={"panel": subentry.title},
+        )
+
     def _device_in_use(self, device_id: str) -> bool:
         """Return True if any MusicSpot account already has this panel."""
         for entry in self.hass.config_entries.async_entries(DOMAIN):

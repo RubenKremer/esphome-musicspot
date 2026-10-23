@@ -100,6 +100,7 @@ class MusicSpotPanel:
         )
         self._browse_lock = asyncio.Lock()
         self._mismatch_logged = False
+        self._https_warned = False
         self._context_names: dict[str, str] = {}
         self._liked: dict[str, bool] = {}
 
@@ -379,18 +380,29 @@ class MusicSpotPanel:
 
     def _base_url(self) -> str:
         """URL the panel uses to reach Home Assistant (prefer plain LAN HTTP, D9)."""
-        if self._art_base_url:
-            return self._art_base_url
-        try:
-            return get_url(
-                self.hass, allow_external=False, allow_cloud=False, prefer_external=False
-            )
-        except NoURLAvailableError:
+        url = self._art_base_url
+        if not url:
+            try:
+                url = get_url(
+                    self.hass, allow_external=False, allow_cloud=False, prefer_external=False
+                )
+            except NoURLAvailableError:
+                LOGGER.warning(
+                    "No internal URL for album art; set 'Album art base URL' on panel %s",
+                    self.title,
+                )
+                return ""
+        if url.startswith("https://") and not self._https_warned:
+            # A TLS handshake per image blocks the panel's main loop for about a second (P1.5)
+            self._https_warned = True
             LOGGER.warning(
-                "No internal URL for album art; set 'Album art base URL' on panel %s",
+                "Panel %s loads album art over HTTPS (%s), which makes it freeze while images "
+                "load. Reconfigure the panel with a plain-HTTP LAN address, e.g. "
+                "http://<home-assistant-ip>:8123",
                 self.title,
+                url,
             )
-            return ""
+        return url
 
     async def async_push_devices(self) -> None:
         """Send the Spotify Connect device list.
