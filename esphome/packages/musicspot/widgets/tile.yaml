@@ -1,0 +1,56 @@
+# Albums grid tile ${n} (used as `- button: !include`). Tap = open album, long press = queue hint.
+id: ms_tile_${n}
+width: 84
+height: 124
+hidden: true
+layout:
+  type: flex
+  flex_flow: COLUMN
+  pad_row: 6
+on_short_click:
+  - script.execute:
+      id: ms_send_input
+      type: tap
+      arg: ""
+      value: ${n}
+widgets:
+  - obj:
+      width: 84
+      height: 84
+      bg_color: ms_c_cover
+      bg_opa: COVER
+      clickable: false
+      scrollable: false
+      widgets:
+        - image:
+            id: ms_tile_${n}_art
+            src: ms_tile_img_${n}
+            align: CENTER
+            hidden: true
+        - label:
+            id: ms_tile_${n}_now
+            text: "NOW"
+            hidden: true
+            align: BOTTOM_LEFT
+            height: 20
+            pad_left: 6
+            pad_right: 6
+            pad_top: 4
+            bg_color: ms_c_accent
+            bg_opa: COVER
+            text_font: ms_mono12
+            text_color: ms_c_bg
+  - label:
+      id: ms_tile_${n}_title
+      text: ""
+      width: 84
+      long_mode: DOT
+      text_font: ms_sans14
+      text_color: ms_c_fg
+  - label:
+      id: ms_tile_${n}_sub
+      text: ""
+      width: 84
+      long_mode: DOT
+      text_font: ms_mono12
+      text_color: ms_c_dim

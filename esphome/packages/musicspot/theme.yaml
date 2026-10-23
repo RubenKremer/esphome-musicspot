@@ -1,7 +1,4 @@
-# Design C theme (D18, D24) — DRAFT
-#
-# Not included by musicspot.yaml / core.yaml yet: the screens are rebuilt onto these
-# tokens in the next step, and the file is validated in ESPHome then.
+# Design C theme (D18, D24): colours, fonts, icons and shared styles.
 # Visual reference: design/mockups/design-c.html (LVGL-faithful) and design/cyber-design.
 
 # -------------------------------------------
@@ -26,6 +23,21 @@ color:
     hex: FF6A1A
   - id: ms_c_spotify     # source dot only
     hex: 1DB954
+  - id: ms_c_cover       # empty cover / thumbnail placeholder
+    hex: 161616
+  # Idle clock (dimmer palette)
+  - id: ms_c_idle_bg
+    hex: "000000"
+  - id: ms_c_idle_fg
+    hex: B8B8B8
+  - id: ms_c_idle_dim
+    hex: 6E6E6E
+  - id: ms_c_idle_line
+    hex: "262626"
+  - id: ms_c_idle_dot
+    hex: 5A5A5A
+  - id: ms_c_accent_dim
+    hex: B04A12
 
 # -------------------------------------------
 # Type scale (D24): the only fonts on the panel
@@ -72,6 +84,11 @@ font:
     size: 40
     bpp: 4
     glyphs: "0123456789:/ -"
+  - file: { type: gfonts, family: IBM Plex Mono, weight: 300 }
+    id: ms_digits124     # idle clock
+    size: 124
+    bpp: 4
+    glyphs: "0123456789"
 
 # -------------------------------------------
 # Icons: the design's own SVGs, white on transparent, recoloured per state in LVGL
@@ -97,6 +114,26 @@ image:
 # Reusable styles
 # -------------------------------------------
 lvgl:
+  default_font: ms_sans16
+  # Flat defaults instead of LVGL's rounded, shadowed, blue theme
+  theme:
+    obj:
+      bg_opa: TRANSP
+      border_width: 0
+      radius: 0
+      pad_all: 0
+    button:
+      bg_opa: TRANSP
+      border_width: 0
+      radius: 0
+      shadow_width: 0
+      pad_all: 0
+      text_color: ms_c_fg
+      pressed:
+        bg_color: 0x1A1A1A
+        bg_opa: COVER
+    label:
+      text_color: ms_c_fg
   style_definitions:
     - id: ms_st_flat              # transparent container, no border, no padding
       bg_opa: TRANSP

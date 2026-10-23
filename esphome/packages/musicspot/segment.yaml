@@ -1,0 +1,11 @@
+# Segmented bar cell ${n} of ${count} (volume / brightness, design C).
+# vars: group (vol | bri), n (1..count), count, value (global id holding 0..100), on (hex colour).
+# Widget: widgets/segment.yaml.
+
+script:
+  - id: ms_${group}_seg_${n}_set
+    then:
+      - lvgl.widget.update:
+          id: ms_${group}_seg_${n}
+          bg_color: !lambda |-
+            return (id(${value}) * ${count} + 50) / 100 >= ${n} ? lv_color_hex(${on}) : lv_color_hex(0x2E2E2E);

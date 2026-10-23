@@ -6,9 +6,10 @@ ESPHome config for the Guition ESP32-S3-4848S040.
 |---|---|
 | `musicspot.yaml` | Device config (name, Wi-Fi, API, OTA) |
 | `packages/hardware/guition-esp32-s3-4848s040.yaml` | Board: display, touch, backlight, PSRAM |
-| `packages/musicspot/core.yaml` | Screens (Now Playing, Browse, Devices), API actions, input events |
-| `packages/musicspot/*_row.yaml`, `widgets/` | Templates for the 6 browse rows and 5 device rows |
-| `packages/musicspot/fonts.yaml` | Roboto with Western European accents |
+| `packages/musicspot/core.yaml` | Design C screens (PLAYING, LIBRARY, SETUP, idle clock), API actions, input events |
+| `packages/musicspot/theme.yaml` | Colours, IBM Plex fonts, icons and shared styles |
+| `packages/musicspot/{list_row,tile,device_row,segment}.yaml`, `widgets/` | Templates for list rows, album tiles, device rows and bar segments |
+| `packages/musicspot/icons/` | Design C icons (SVG, recoloured on the panel) |
 | `secrets.yaml.example` | Template for your `secrets.yaml` (never commit the real one) |
 
 ## Setup

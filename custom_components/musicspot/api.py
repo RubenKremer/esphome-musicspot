@@ -259,6 +259,54 @@ class MusicSpotApi:
             "GET", "/me/player/recently-played", params={"limit": limit}
         )
 
+    async def get_playlist_name(self, playlist_id: str) -> str:
+        """Return a playlist's name (metadata is available for any playlist)."""
+        data = await self._request(
+            "GET", f"/playlists/{playlist_id}", params={"fields": "name"}
+        )
+        return (data or {}).get("name") or ""
+
+    async def get_artist(self, artist_id: str) -> dict[str, Any]:
+        """Return an artist."""
+        return await self._request("GET", f"/artists/{artist_id}") or {}
+
+    async def get_artist_albums(
+        self, artist_id: str, limit: int, offset: int
+    ) -> dict[str, Any]:
+        """Return a page of an artist's albums and singles."""
+        return await self._request(
+            "GET",
+            f"/artists/{artist_id}/albums",
+            params={"include_groups": "album,single", "limit": limit, "offset": offset},
+        )
+
+    async def get_followed_artists(self, limit: int, after: str | None = None) -> dict[str, Any]:
+        """Return followed artists (cursor based)."""
+        params: dict[str, Any] = {"type": "artist", "limit": limit}
+        if after:
+            params["after"] = after
+        data = await self._request("GET", "/me/following", params=params)
+        return (data or {}).get("artists") or {}
+
+    # ---- library: save / remove / contains (Feb 2026 URI-based endpoints) --
+
+    async def library_contains(self, uris: list[str]) -> list[bool]:
+        """Return for each URI whether it is in the user's library (max 40)."""
+        data = await self._request(
+            "GET", "/me/library/contains", params={"uris": ",".join(uris[:40])}
+        )
+        return [bool(v) for v in (data or [])]
+
+    async def library_save(self, uris: list[str]) -> None:
+        """Save items to the library (uris go in the query string)."""
+        await self._request("PUT", "/me/library", params={"uris": ",".join(uris[:40])})
+
+    async def library_remove(self, uris: list[str]) -> None:
+        """Remove items from the library."""
+        await self._request(
+            "DELETE", "/me/library", params={"uris": ",".join(uris[:40])}
+        )
+
     async def search(
         self, query: str, types: list[str], limit: int, offset: int
     ) -> dict[str, Any]:

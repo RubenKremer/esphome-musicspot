@@ -18,6 +18,8 @@ SCOPES = [
     "user-read-currently-playing",
     "user-read-recently-played",
     "user-library-read",
+    "user-library-modify",  # ♥ Like (D22)
+    "user-follow-read",  # Library > Artists (D22)
     "playlist-read-private",
     "playlist-read-collaborative",
 ]
@@ -30,8 +32,9 @@ CONF_DEFAULT_DEVICE = "default_device"
 # Panel protocol (docs/panel-protocol.md)
 EVENT_PANEL_INPUT = "esphome.musicspot_input"
 ESPHOME_DOMAIN = "esphome"
-ART_SIZE_NOW = 220
-ART_SIZE_THUMB = 48
+ART_SIZE_NOW = 150  # design C cover
+ART_SIZE_THUMB = 40  # list rows (D26)
+ART_SIZE_TILE = 84  # Albums grid tiles
 
 # Poll fast only while a panel is awake; development-mode quota is shared per app.
 UPDATE_INTERVAL_SLOW = timedelta(seconds=30)

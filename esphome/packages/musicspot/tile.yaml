@@ -1,0 +1,51 @@
+# Albums grid tile ${n}: 84 px cover + update script. vars: n (1..8), idx (n - 1).
+# Widget: widgets/tile.yaml. Shown only when the page is a grid (ms_grid).
+
+image:
+  - platform: online_image
+    id: ms_tile_img_${n}
+    url: "http://localhost/musicspot-none.jpg"
+    format: JPEG
+    type: RGB565
+    resize: 84x84
+    on_download_finished:
+      - lvgl.image.update:
+          id: ms_tile_${n}_art
+          src: ms_tile_img_${n}
+      - lvgl.widget.show: ms_tile_${n}_art
+    on_error:
+      - lvgl.widget.hide: ms_tile_${n}_art
+
+script:
+  - id: ms_tile_${n}_set
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_grid) && id(ms_titles).size() > ${idx};
+          then:
+            - lvgl.label.update:
+                id: ms_tile_${n}_title
+                text: !lambda return id(ms_titles)[${idx}];
+            - lvgl.label.update:
+                id: ms_tile_${n}_sub
+                text: !lambda |-
+                  return id(ms_subtitles).size() > ${idx} ? id(ms_subtitles)[${idx}] : std::string("");
+            - if:
+                condition:
+                  lambda: return id(ms_now_index) == ${idx};
+                then:
+                  - lvgl.widget.show: ms_tile_${n}_now
+                else:
+                  - lvgl.widget.hide: ms_tile_${n}_now
+            - if:
+                condition:
+                  lambda: return id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
+                then:
+                  - online_image.set_url:
+                      id: ms_tile_img_${n}
+                      url: !lambda return id(ms_thumbs)[${idx}];
+                else:
+                  - lvgl.widget.hide: ms_tile_${n}_art
+            - lvgl.widget.show: ms_tile_${n}
+          else:
+            - lvgl.widget.hide: ms_tile_${n}

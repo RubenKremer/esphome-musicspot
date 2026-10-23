@@ -1,0 +1,61 @@
+# Library list row ${n}: 40 px thumbnail + update script. vars: n (1..6), idx (n - 1).
+# Widget: widgets/list_row.yaml. Data: ms_nums / ms_titles / ms_subtitles / ms_counts / ms_thumbs.
+
+image:
+  - platform: online_image
+    id: ms_thumb_${n}
+    url: "http://localhost/musicspot-none.jpg"
+    format: JPEG
+    type: RGB565
+    resize: 40x40
+    on_download_finished:
+      - lvgl.image.update:
+          id: ms_row_${n}_thumb
+          src: ms_thumb_${n}
+      - lvgl.widget.show: ms_row_${n}_thumb
+    on_error:
+      - lvgl.widget.hide: ms_row_${n}_thumb
+
+script:
+  - id: ms_row_${n}_set
+    then:
+      - if:
+          condition:
+            lambda: return !id(ms_grid) && id(ms_titles).size() > ${idx};
+          then:
+            - lvgl.label.update:
+                id: ms_row_${n}_num
+                text: !lambda |-
+                  return id(ms_nums).size() > ${idx} ? id(ms_nums)[${idx}] : std::string("");
+                text_color: !lambda |-
+                  bool first = id(ms_nums).size() > ${idx} && id(ms_nums)[${idx}] == "01";
+                  return first ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x8A8A8A);
+            - lvgl.label.update:
+                id: ms_row_${n}_title
+                text: !lambda return id(ms_titles)[${idx}];
+            - lvgl.label.update:
+                id: ms_row_${n}_count
+                text: !lambda |-
+                  return id(ms_counts).size() > ${idx} ? id(ms_counts)[${idx}] : std::string("");
+            - if:
+                condition:
+                  lambda: return id(ms_subtitles).size() > ${idx} && !id(ms_subtitles)[${idx}].empty();
+                then:
+                  - lvgl.label.update:
+                      id: ms_row_${n}_sub
+                      text: !lambda return id(ms_subtitles)[${idx}];
+                  - lvgl.widget.show: ms_row_${n}_sub
+                else:
+                  - lvgl.widget.hide: ms_row_${n}_sub
+            - if:
+                condition:
+                  lambda: return id(ms_thumbs).size() > ${idx} && !id(ms_thumbs)[${idx}].empty();
+                then:
+                  - online_image.set_url:
+                      id: ms_thumb_${n}
+                      url: !lambda return id(ms_thumbs)[${idx}];
+                else:
+                  - lvgl.widget.hide: ms_row_${n}_thumb
+            - lvgl.widget.show: ms_row_${n}
+          else:
+            - lvgl.widget.hide: ms_row_${n}

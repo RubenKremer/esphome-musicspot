@@ -1,0 +1,8 @@
+# Segmented bar cell (used as `- obj: !include`). vars: group, n.
+id: ms_${group}_seg_${n}
+width: 4
+flex_grow: 1
+height: 100%
+bg_color: ms_c_line
+bg_opa: COVER
+clickable: false

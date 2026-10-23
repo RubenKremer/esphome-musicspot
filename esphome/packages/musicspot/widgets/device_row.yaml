@@ -1,10 +1,14 @@
-# Device row ${n} widget (used as `- button: !include`). Tap = transfer playback to this device.
+# Setup > output device row ${n} (used as `- button: !include`). Tap = play on this device.
 id: ms_dev_${n}
 width: 100%
-height: 42
+height: 50
 hidden: true
-bg_color: 0x161616
-radius: 8
+styles: ms_st_row
+layout:
+  type: flex
+  flex_flow: ROW
+  flex_align_cross: CENTER
+  pad_column: 12
 on_short_click:
   - script.execute:
       id: ms_send_input
@@ -12,11 +16,27 @@ on_short_click:
       arg: ""
       value: ${n}
 widgets:
+  - obj:
+      id: ms_dev_${n}_box
+      width: 22
+      height: 22
+      border_width: 1
+      border_color: 0x4A4A4A
+      bg_color: ms_c_accent
+      bg_opa: TRANSP
+      clickable: false
+      widgets:
+        - image:
+            id: ms_dev_${n}_check
+            src: ms_ic_check
+            align: CENTER
+            hidden: true
+            styles: ms_st_icon_on_accent
   - label:
       id: ms_dev_${n}_label
       text: ""
-      width: 90%
-      align: LEFT_MID
+      width: 10
+      flex_grow: 1
       long_mode: DOT
-      text_font: ms_font_body
-      text_color: 0xFFFFFF
+      text_font: ms_sans16
+      text_color: ms_c_fg

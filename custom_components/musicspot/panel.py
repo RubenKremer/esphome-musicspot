@@ -19,10 +19,11 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .api import SpotifyApiError, SpotifyNotFoundError
 from .art import ArtStore
-from .browse import PAGE_SIZE, Browser, Row
+from .browse import GRID_SIZE, Browser, Row
 from .const import (
     ART_SIZE_NOW,
     ART_SIZE_THUMB,
+    ART_SIZE_TILE,
     CONF_ART_BASE_URL,
     CONF_DEFAULT_DEVICE,
     CONF_DEVICE_ID,
@@ -39,7 +40,6 @@ _POSITION_TOLERANCE_MS = 2500
 _REFRESH_DELAY_S = 0.5
 # After a seek, Spotify may still report the old position; don't push it back to the panel.
 _SEEK_GRACE_S = 4.0
-_REPEAT_CYCLE = {"off": "context", "context": "track", "track": "off"}
 _MAX_DEVICES = 5
 
 
@@ -96,6 +96,8 @@ class MusicSpotPanel:
             coordinator.api, coordinator.config_entry.unique_id or ""
         )
         self._browse_lock = asyncio.Lock()
+        self._context_names: dict[str, str] = {}
+        self._liked: dict[str, bool] = {}
 
     # ---- lifecycle -------------------------------------------------------
 
@@ -161,31 +163,55 @@ class MusicSpotPanel:
                 await self._call("set_busy", {"busy": False})
                 await self.async_toast("Spotify didn't answer, try again")
                 return
+            size = ART_SIZE_TILE if page.grid else ART_SIZE_THUMB
             thumbs = await asyncio.gather(
-                *(self._thumb_url(i, row) for i, row in enumerate(page.rows, 1))
+                *(self._thumb_url(i, row, size) for i, row in enumerate(page.rows, 1))
             )
+            nums: list[str] = []
+            number = page.first_number
+            for row in page.rows:
+                if row.play_all:
+                    nums.append("")
+                else:
+                    nums.append(f"{number:02d}")
+                    number += 1
+            playing_album = (
+                ((self.coordinator.data or {}).get("item") or {}).get("album") or {}
+            ).get("uri")
             await self._call(
                 "show_page",
                 {
-                    "breadcrumb": page.title,
+                    "title": page.title,
+                    "tab": page.tab,
                     "page": page.page,
                     "pages": page.pages,
                     "can_back": page.can_back,
+                    "grid": page.grid,
+                    "now_index": next(
+                        (
+                            i
+                            for i, row in enumerate(page.rows)
+                            if playing_album and row.album_uri == playing_album
+                        ),
+                        -1,
+                    ),
+                    "nums": nums,
                     "titles": [row.title for row in page.rows],
                     "subtitles": [row.subtitle for row in page.rows],
+                    "counts": [row.count for row in page.rows],
                     "thumbs": list(thumbs),
                 },
             )
             await self._call("set_busy", {"busy": False})
 
-    async def _thumb_url(self, slot: int, row: Row) -> str:
+    async def _thumb_url(self, slot: int, row: Row, size: int) -> str:
         """Prepare a row thumbnail and return its panel URL ('' for none)."""
         base = self._base_url()
         if not row.image or not base:
             return ""
-        name = f"t{slot}.jpg"
+        name = f"t{slot}_{size}.jpg"
         version = await self._art_store.async_set_from_url(
-            self._token, name, row.image, ART_SIZE_THUMB
+            self._token, name, row.image, size
         )
         if not version:
             return ""
@@ -228,14 +254,15 @@ class MusicSpotPanel:
         payload: dict[str, Any] = {
             "title": "",
             "artist": "",
-            "album": "",
+            "context": "",
+            "device": (device.get("name") or "").upper(),
             "art_url": "",
             "state": "idle",
             "position_ms": 0,
             "duration_ms": 0,
             "volume": int(device.get("volume_percent") or 0),
             "shuffle": bool((data or {}).get("shuffle_state")),
-            "repeat": (data or {}).get("repeat_state") or "off",
+            "liked": False,
         }
         if not data or not item:
             return payload
@@ -243,23 +270,64 @@ class MusicSpotPanel:
         if item.get("type") == "episode":
             show = item.get("show") or {}
             artist = show.get("name", "")
-            album = ""
             images = item.get("images") or show.get("images") or []
         else:
             artist = ", ".join(a.get("name", "") for a in item.get("artists", []))
-            album = (item.get("album") or {}).get("name", "")
             images = (item.get("album") or {}).get("images") or []
 
         payload.update(
             title=item.get("name", ""),
             artist=artist,
-            album=album,
+            context=await self._context_text(data),
             art_url=await self._art_for(images),
             state="playing" if data.get("is_playing") else "paused",
             position_ms=int(data.get("progress_ms") or 0),
             duration_ms=int(item.get("duration_ms") or 0),
+            liked=await self._is_liked(item.get("uri") or ""),
         )
         return payload
+
+    async def _context_text(self, data: dict[str, Any]) -> str:
+        """Header above the cover (D20): TRACK nn / NN for albums, else the context name."""
+        item = data.get("item") or {}
+        context = data.get("context") or {}
+        kind, uri = context.get("type"), context.get("uri") or ""
+        album = item.get("album") or {}
+        if kind == "album" or (not kind and album.get("total_tracks")):
+            number, total = item.get("track_number"), album.get("total_tracks")
+            if number and total:
+                return f"TRACK {number:02d} / {total:02d}"
+        if kind == "collection" or uri.endswith(":collection"):
+            return "LIKED SONGS"
+        if uri and kind in ("playlist", "artist", "show"):
+            if uri not in self._context_names:
+                name = ""
+                try:
+                    object_id = uri.rsplit(":", 1)[-1]
+                    if kind == "playlist":
+                        name = await self.coordinator.api.get_playlist_name(object_id)
+                    elif kind == "artist":
+                        name = (await self.coordinator.api.get_artist(object_id)).get("name", "")
+                    else:
+                        name = ((item.get("show") or {}).get("name")) or ""
+                except SpotifyApiError as err:
+                    LOGGER.debug("Could not name context %s: %s", uri, err)
+                self._context_names[uri] = name.upper()
+            return self._context_names[uri]
+        return ""
+
+    async def _is_liked(self, uri: str) -> bool:
+        """Whether the track is in Liked Songs (cached per track)."""
+        if not uri:
+            return False
+        if uri not in self._liked:
+            try:
+                result = await self.coordinator.api.library_contains([uri])
+                self._liked[uri] = bool(result and result[0])
+            except SpotifyApiError as err:
+                LOGGER.debug("Could not check library for %s: %s", uri, err)
+                return False
+        return self._liked[uri]
 
     async def _art_for(self, images: list[dict[str, Any]]) -> str:
         """Return the panel URL for the cover, preparing it when the track changed."""
@@ -354,12 +422,15 @@ class MusicSpotPanel:
         elif type_ == "page":
             self._browser.turn_page(1 if value > 0 else -1)
             await self.async_push_browse()
+        elif type_ == "tab":
+            self._browser.select_tab(value)
+            await self.async_push_browse()
         else:
             LOGGER.debug("Input type %s is not handled yet", type_)
 
     def _row(self, slot: int) -> Row | None:
         """Row behind a 1-based slot of the page the panel shows."""
-        if 1 <= slot <= min(PAGE_SIZE, len(self._browser.rows)):
+        if 1 <= slot <= min(GRID_SIZE, len(self._browser.rows)):
             return self._browser.rows[slot - 1]
         return None
 
@@ -386,7 +457,7 @@ class MusicSpotPanel:
             else:
                 await self._async_play(uris=[row.uri])
         except SpotifyNotFoundError:
-            await self.async_toast("No active speaker - pick one under Play on")
+            await self.async_toast("No active speaker - pick one in Setup")
             await self._call("show_screen", {"screen": "devices"})
             return
         except SpotifyApiError as err:
@@ -431,10 +502,9 @@ class MusicSpotPanel:
                 await api.previous_track()
             elif command == "shuffle":
                 await api.set_shuffle(not data.get("shuffle_state"))
-            elif command == "repeat":
-                await api.set_repeat(
-                    _REPEAT_CYCLE.get(data.get("repeat_state") or "off", "off")
-                )
+            elif command == "like":
+                await self._async_toggle_like(data)
+                return
             elif command == "volume":
                 await api.set_volume(value)
             elif command == "seek":
@@ -453,6 +523,26 @@ class MusicSpotPanel:
         except SpotifyApiError as err:
             LOGGER.warning("Spotify rejected %s: %s", command, err)
         await self._async_refresh_soon()
+
+    async def _async_toggle_like(self, data: dict[str, Any]) -> None:
+        """Save/remove the current track in Liked Songs and update the panel."""
+        uri = (data.get("item") or {}).get("uri") or ""
+        if not uri:
+            return
+        liked = await self._is_liked(uri)
+        try:
+            if liked:
+                await self.coordinator.api.library_remove([uri])
+            else:
+                await self.coordinator.api.library_save([uri])
+        except SpotifyApiError as err:
+            LOGGER.warning("Could not update Liked Songs: %s", err)
+            await self.async_toast("Spotify refused to change Liked Songs")
+            return
+        self._liked[uri] = not liked
+        self._browser.invalidate_liked()
+        await self.async_toast("Added to Liked Songs" if not liked else "Removed from Liked Songs")
+        await self.async_push_now_playing(force=True)
 
     async def _async_play(self, **kwargs: Any) -> None:
         """Play/resume; when nothing is active, use the default device if configured."""

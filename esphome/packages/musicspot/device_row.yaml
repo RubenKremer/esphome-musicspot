@@ -1,4 +1,5 @@
-# Device row ${n} — update script. vars: n (1..5), idx (n - 1). Widget lives in widgets/device_row.yaml.
+# Setup > output device row ${n}: update script. vars: n (1..5), idx (n - 1).
+# Widget: widgets/device_row.yaml. Spotify plays on one device at a time (D23).
 
 script:
   - id: ms_device_row_${n}_set
@@ -15,12 +16,16 @@ script:
                   lambda: return id(ms_active_device) == ${idx};
                 then:
                   - lvgl.widget.update:
-                      id: ms_dev_${n}
-                      bg_color: 0x1DB954
+                      id: ms_dev_${n}_box
+                      bg_opa: COVER
+                      border_color: ms_c_accent
+                  - lvgl.widget.show: ms_dev_${n}_check
                 else:
                   - lvgl.widget.update:
-                      id: ms_dev_${n}
-                      bg_color: 0x161616
+                      id: ms_dev_${n}_box
+                      bg_opa: TRANSP
+                      border_color: 0x4A4A4A
+                  - lvgl.widget.hide: ms_dev_${n}_check
             - lvgl.widget.show: ms_dev_${n}
           else:
             - lvgl.widget.hide: ms_dev_${n}
