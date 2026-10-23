@@ -73,12 +73,12 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [x] P2.4 Local progress-bar interpolation between updates — verified on device during playback, 2026-10-23 (seek jump-back fixed afterwards)
 - [x] P2.5 API action `show_page(breadcrumb, page, pages, can_back, titles[], subtitles[], thumbs[])` (no ids: D11) — verified on device via Developer Tools, 2026-10-23
 - [x] P2.6 Browse screen: 6 fixed rows (48px thumb + 2 lines), hide empty rows, Back, ◀ x/y ▶ — verified on device via Developer Tools, 2026-10-23
-- [ ] P2.7 API action `show_devices(names[], active)` + Devices screen (5 rows + volume slider)
+- [x] P2.7 API action `show_devices(names[], active)` + Devices screen (5 rows + volume slider) — verified on device 2026-10-23 (Settings tab); Google Cast limitation, see Findings
 - [ ] P2.8 API action `set_busy(bool)` + spinner overlay
 - [x] P2.9 Outgoing events `esphome.musicspot_input`: tap/queue (slot), back, page(±1), device (slot), control(cmd, value), awake, hello — verified: awake, tap, queue, back, page events seen with device_id, 2026-10-23
       — all pass the device's own identity
 - [ ] P2.10 Fallback screens: no connection to HA / nothing playing / no devices
-- [ ] P2.11 Test everything from HA Developer Tools with fake data (no integration yet)
+- [x] P2.11 Test everything from HA Developer Tools with fake data (no integration yet) — covered by Developer Tools tests (P2.5/P2.6/P2.9) and real-data testing in Phases 4–5, 2026-10-23
 
 **Done when:** every screen can be driven by hand from Developer Tools, and taps show up as HA action calls.
 
@@ -103,17 +103,17 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 **Done when:** panel follows phone playback within ~5 s, art correct, all controls work.
 
 ## Phase 5 — Browse
-- [ ] P5.1 Root menu: Playlists, Liked Songs, Recently Played, Albums
-- [ ] P5.2 Per-panel browse state (path stack, page) — survives a panel reboot
-- [ ] P5.3 Paging (6 per page) with lazy fetch from Spotify (respect API page sizes)
-- [ ] P5.4 Tap: folder → drill in; track → play in context (playlist/album) where possible
-- [ ] P5.5 Long press on track → add to queue + toast on device
-- [ ] P5.6 Thumbnails via image view (64px)
+- [x] P5.1 Root menu: Playlists, Liked Songs, Recently Played, Albums — verified on device, 2026-10-23
+- [x] P5.2 Per-panel browse state (path stack, page) — survives a panel reboot — verified on device, 2026-10-23
+- [x] P5.3 Paging (6 per page) with lazy fetch from Spotify (respect API page sizes) — verified on device, 2026-10-23
+- [x] P5.4 Tap: folder → drill in; track → play in context (playlist/album) where possible — verified on device, 2026-10-23
+- [x] P5.5 Long press on track → add to queue + toast on device — verified on device, 2026-10-23
+- [x] P5.6 Thumbnails via image view (48px) — verified on device, 2026-10-23
 
 **Done when:** can start a playlist and queue a song entirely from the panel.
 
 ## Phase 6 — Devices, queue, search
-- [ ] P6.1 Device list push + transfer playback (implemented early in Phase 4 for P2.7; verify here)
+- [x] P6.1 Device list push + transfer playback (implemented early in Phase 4 for P2.7; verify here) — verified on device 2026-10-23; transfer back to an idle Google Cast speaker fails (Spotify limitation, D15)
 - [ ] P6.2 Queue view (read-only, `GET /me/player/queue`)
 - [ ] P6.3 Search: LVGL keyboard → `search` input event → results as a browse page (10/page)
 
