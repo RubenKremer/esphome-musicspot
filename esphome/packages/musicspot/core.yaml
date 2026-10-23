@@ -302,21 +302,36 @@ script:
       - script.execute: ms_bri_seg_9_set
       - script.execute: ms_bri_seg_10_set
 
+  # One row/tile at a time: parallel image downloads (8 tiles) ran the ESP32 out of memory
   - id: ms_refresh_rows
+    mode: restart
     then:
       - script.execute: ms_row_1_set
+      - delay: 120ms
       - script.execute: ms_row_2_set
+      - delay: 120ms
       - script.execute: ms_row_3_set
+      - delay: 120ms
       - script.execute: ms_row_4_set
+      - delay: 120ms
       - script.execute: ms_row_5_set
+      - delay: 120ms
       - script.execute: ms_row_6_set
+      - delay: 120ms
       - script.execute: ms_tile_1_set
+      - delay: 120ms
       - script.execute: ms_tile_2_set
+      - delay: 120ms
       - script.execute: ms_tile_3_set
+      - delay: 120ms
       - script.execute: ms_tile_4_set
+      - delay: 120ms
       - script.execute: ms_tile_5_set
+      - delay: 120ms
       - script.execute: ms_tile_6_set
+      - delay: 120ms
       - script.execute: ms_tile_7_set
+      - delay: 120ms
       - script.execute: ms_tile_8_set
 
   - id: ms_refresh_device_rows

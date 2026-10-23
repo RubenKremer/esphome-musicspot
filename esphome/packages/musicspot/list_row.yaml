@@ -8,6 +8,8 @@ image:
     format: JPEG
     type: RGB565
     resize: 40x40
+    # Pre-sized JPEGs are a few KB; 14 images x the 64 KB default buffer is wasteful
+    buffer_size: 8192
     on_download_finished:
       - lvgl.image.update:
           id: ms_row_${n}_thumb

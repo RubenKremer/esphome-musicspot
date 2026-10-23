@@ -8,6 +8,8 @@ image:
     format: JPEG
     type: RGB565
     resize: 84x84
+    # Pre-sized JPEGs are a few KB; 14 images x the 64 KB default buffer is wasteful
+    buffer_size: 16384
     on_download_finished:
       - lvgl.image.update:
           id: ms_tile_${n}_art
