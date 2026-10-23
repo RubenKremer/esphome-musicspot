@@ -111,6 +111,20 @@ script:
                 arg: ""
                 value: !lambda "return awake ? 1 : 0;"
 
+  # Banner only when no Home Assistant (state-subscribed) client is connected
+  - id: ms_update_offline
+    mode: restart
+    then:
+      - delay: 1s
+      - if:
+          condition:
+            api.connected:
+              state_subscription_only: true
+          then:
+            - lvgl.widget.hide: ms_offline
+          else:
+            - lvgl.widget.show: ms_offline
+
   - id: ms_hide_toast
     mode: restart
     then:
@@ -145,15 +159,21 @@ touchscreen:
 # Inbound: API actions called by the integration
 # -------------------------------------------
 api:
+  # Other API clients (e.g. the ESPHome dashboard log viewer) connect and disconnect too;
+  # only Home Assistant counts for the banner and the hello.
   on_client_connected:
-    - lvgl.widget.hide: ms_offline
-    - script.execute:
-        id: ms_send_input
-        type: hello
-        arg: ""
-        value: 0
+    - if:
+        condition:
+          lambda: return client_info.find("Home Assistant") != std::string::npos;
+        then:
+          - script.execute:
+              id: ms_send_input
+              type: hello
+              arg: ""
+              value: 0
+    - script.execute: ms_update_offline
   on_client_disconnected:
-    - lvgl.widget.show: ms_offline
+    - script.execute: ms_update_offline
 
   actions:
     # state: playing | paused | idle ; repeat: off | context | track
@@ -322,6 +342,10 @@ api:
 # Progress bar: interpolate locally between updates
 # -------------------------------------------
 interval:
+  # Safety net for the offline banner (HA can subscribe a moment after connecting)
+  - interval: 10s
+    then:
+      - script.execute: ms_update_offline
   - interval: 500ms
     then:
       - if:
