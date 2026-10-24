@@ -16,6 +16,7 @@ from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .api import SpotifyApiError, SpotifyNotFoundError
@@ -42,6 +43,8 @@ _REFRESH_DELAY_S = 0.5
 # After a seek, Spotify may still report the old position; don't push it back to the panel.
 _SEEK_GRACE_S = 4.0
 _QUEUE_PAGE = 5  # Up next rows per page (design C)
+# The panel shows shuffle/like taps at once and ignores our state for 4 s; re-send after that
+_RECONCILE_S = 4.5
 # First push after setup: wait up to 2 minutes for the panel's ESPHome actions.
 _REACHABLE_TRIES = 24
 _REACHABLE_INTERVAL_S = 5
@@ -105,6 +108,7 @@ class MusicSpotPanel:
         self._https_warned = False
         self._context_names: dict[str, str] = {}
         self._liked: dict[str, bool] = {}
+        self._liked_current = ""
         self._queue: list[dict[str, Any]] = []
         self._queue_page = 1
 
@@ -355,6 +359,10 @@ class MusicSpotPanel:
         """Whether the track is in Liked Songs (cached per track)."""
         if not uri:
             return False
+        if uri != self._liked_current:
+            # New current track: ask Spotify again (it may have been liked on another device)
+            self._liked_current = uri
+            self._liked.pop(uri, None)
         if uri not in self._liked:
             try:
                 result = await self.coordinator.api.library_contains([uri])
@@ -588,8 +596,10 @@ class MusicSpotPanel:
             elif command == "previous":
                 await api.previous_track()
             elif command == "shuffle":
+                self._schedule_reconcile()
                 await api.set_shuffle(not data.get("shuffle_state"))
             elif command == "like":
+                self._schedule_reconcile()
                 await self._async_toggle_like(data)
                 return
             elif command == "volume":
@@ -610,6 +620,16 @@ class MusicSpotPanel:
         except SpotifyApiError as err:
             LOGGER.warning("Spotify rejected %s: %s", command, err)
         await self._async_refresh_soon()
+
+    @callback
+    def _schedule_reconcile(self) -> None:
+        """Re-send the real state once the panel stops ignoring it (optimistic toggles)."""
+
+        @callback
+        def _reconcile(_now: Any) -> None:
+            self.hass.async_create_task(self.async_push_now_playing(force=True))
+
+        async_call_later(self.hass, _RECONCILE_S, _reconcile)
 
     async def _async_toggle_like(self, data: dict[str, Any]) -> None:
         """Save/remove the current track in Liked Songs and update the panel."""

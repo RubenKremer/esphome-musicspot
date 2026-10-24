@@ -97,6 +97,11 @@ globals:
   - { id: ms_vol_drag, type: bool, initial_value: "false" }
   - { id: ms_vol_hold_until, type: uint32_t, initial_value: "0" }
   - { id: ms_img_busy, type: bool, initial_value: "false" }
+  # Optimistic toggles: shown at once, Spotify state ignored for 4 s after a tap
+  - { id: ms_shuffle, type: bool, initial_value: "false" }
+  - { id: ms_liked, type: bool, initial_value: "false" }
+  - { id: ms_shuffle_hold_until, type: uint32_t, initial_value: "0" }
+  - { id: ms_like_hold_until, type: uint32_t, initial_value: "0" }
   - { id: ms_brightness, type: int, initial_value: "100" }
   - { id: ms_bri_drag, type: bool, initial_value: "false" }
   - { id: ms_grid, type: bool, initial_value: "false" }
@@ -314,6 +319,21 @@ script:
       - lvgl.label.update:
           id: ms_tab_3_lbl
           text_color: !lambda "return tab == 3 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x8A8A8A);"
+
+  - id: ms_render_toggles
+    then:
+      - lvgl.widget.update:
+          id: ms_ic_shuffle_img
+          image_recolor: !lambda "return id(ms_shuffle) ? lv_color_hex(0xFF6A1A) : lv_color_hex(0xEDEDED);"
+      - if:
+          condition:
+            lambda: return id(ms_liked);
+          then:
+            - lvgl.widget.hide: ms_ic_heart_off_img
+            - lvgl.widget.show: ms_ic_heart_on_img
+          else:
+            - lvgl.widget.hide: ms_ic_heart_on_img
+            - lvgl.widget.show: ms_ic_heart_off_img
 
   - id: ms_vol_render
     then:
@@ -718,18 +738,12 @@ api:
               - lvgl.widget.hide: ms_idle_pause_img
               - lvgl.widget.show: ms_ic_play_img
               - lvgl.widget.show: ms_idle_play_img
-        - lvgl.widget.update:
-            id: ms_ic_shuffle_img
-            image_recolor: !lambda "return shuffle ? lv_color_hex(0xFF6A1A) : lv_color_hex(0xEDEDED);"
-        - if:
-            condition:
-              lambda: return liked;
-            then:
-              - lvgl.widget.hide: ms_ic_heart_off_img
-              - lvgl.widget.show: ms_ic_heart_on_img
-            else:
-              - lvgl.widget.hide: ms_ic_heart_on_img
-              - lvgl.widget.show: ms_ic_heart_off_img
+        # Shuffle/like: a tap shows the new state at once; Spotify's (stale) value is
+        # ignored for 4 s, after which the integration re-sends the real state
+        - lambda: |-
+            if ((int32_t) (millis() - id(ms_shuffle_hold_until)) >= 0) id(ms_shuffle) = shuffle;
+            if ((int32_t) (millis() - id(ms_like_hold_until)) >= 0) id(ms_liked) = liked;
+        - script.execute: ms_render_toggles
         - if:
             condition:
               # Ignore Spotify's stale volume while dragging and for 4 s after release
@@ -1593,6 +1607,10 @@ lvgl:
                         border_side: [RIGHT]
                         border_color: ms_c_line
                         on_click:
+                          - lambda: |-
+                              id(ms_shuffle) = !id(ms_shuffle);
+                              id(ms_shuffle_hold_until) = millis() + 4000;
+                          - script.execute: ms_render_toggles
                           - script.execute: { id: ms_send_input, type: control, arg: shuffle, value: 0 }
                         widgets:
                           - image: { id: ms_ic_shuffle_img, src: ms_ic_shuffle, align: CENTER, styles: ms_st_icon }
@@ -1637,6 +1655,10 @@ lvgl:
                         flex_grow: 1
                         height: 100%
                         on_click:
+                          - lambda: |-
+                              id(ms_liked) = !id(ms_liked);
+                              id(ms_like_hold_until) = millis() + 4000;
+                          - script.execute: ms_render_toggles
                           - script.execute: { id: ms_send_input, type: control, arg: like, value: 0 }
                         widgets:
                           - image: { id: ms_ic_heart_off_img, src: ms_ic_heart_outline, align: CENTER, styles: ms_st_icon }
