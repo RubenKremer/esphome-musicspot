@@ -43,7 +43,7 @@ _REFRESH_DELAY_S = 0.5
 # After a seek, Spotify may still report the old position; don't push it back to the panel.
 _SEEK_GRACE_S = 4.0
 _QUEUE_PAGE = 5  # Up next rows per page (design C)
-# The panel shows shuffle/like taps at once and ignores our state for 4 s; re-send after that
+# The panel shows shuffle/like/play-pause taps at once and ignores our state for 4 s; re-send after that
 _RECONCILE_S = 4.5
 # First push after setup: wait up to 2 minutes for the panel's ESPHome actions.
 _REACHABLE_TRIES = 24
@@ -587,6 +587,7 @@ class MusicSpotPanel:
         data = self.coordinator.data or {}
         try:
             if command == "play_pause":
+                self._schedule_reconcile()
                 if data.get("is_playing"):
                     await api.pause()
                 else:

@@ -193,7 +193,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D31 | "Night" = fixed hours, default 22:00–07:00, adjustable in Settings | Agreed (Ruben, 2026-10-24) | Used by dim at night and the sleep-timer volume recovery |
 | D32 | Backlight output `min_power: 0.015` + `zero_means_zero` | Proposed | Below ~1.5 % PWM duty the backlight is off; with gamma 2.8 that was 22 % brightness. Keeps 1–100 % all visible (panel slider and HA) |
 | D33 | Boot splash (design C): status lines follow real milestones — ESPHome core, Wi-Fi, Home Assistant API (state subscription), SPOTIFY DEVICES (first device list, `N FOUND`; design said MEDIA PLAYERS), READY (first Now Playing) — then PLAYING after 1 s. Tap skips. Nav bar and idle timeout wait for it | Proposed | Replaces the unhelpful "Waiting for Home Assistant" start; shows where startup hangs. Leader lines solid (LVGL has no dotted borders) |
-| D34 | Optimistic toggles: shuffle and ♥ change on the panel at tap; the panel ignores incoming state for 4 s and the integration re-sends the real state after 4.5 s (corrects a failed command) | Agreed (Ruben, 2026-10-24) | Spotify takes a poll or two to report the change. ♥ is re-checked with Spotify each time a track becomes current |
+| D34 | Optimistic toggles: shuffle, ♥ and play/pause change on the panel at tap (next/previous reset progress to 0:00); the panel ignores incoming state for 4 s and the integration re-sends the real state after 4.5 s (corrects a failed command) | Agreed (Ruben, 2026-10-24) | Spotify takes a poll or two to report the change. ♥ is re-checked with Spotify each time a track becomes current |
 
 ## Findings
 

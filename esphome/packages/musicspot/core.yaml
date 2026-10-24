@@ -102,6 +102,10 @@ globals:
   - { id: ms_liked, type: bool, initial_value: "false" }
   - { id: ms_shuffle_hold_until, type: uint32_t, initial_value: "0" }
   - { id: ms_like_hold_until, type: uint32_t, initial_value: "0" }
+  - { id: ms_play_hold_until, type: uint32_t, initial_value: "0" }
+  - { id: ms_pos_hold_until, type: uint32_t, initial_value: "0" }
+  - { id: ms_np_cur_title, type: std::string, initial_value: '""' }
+  - { id: ms_np_idle, type: bool, initial_value: "true" }
   - { id: ms_brightness, type: int, initial_value: "70" }
   - { id: ms_bri_drag, type: bool, initial_value: "false" }
   - { id: ms_grid, type: bool, initial_value: "false" }
@@ -319,6 +323,62 @@ script:
       - lvgl.label.update:
           id: ms_tab_3_lbl
           text_color: !lambda "return tab == 3 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x8A8A8A);"
+
+  # Play/pause icons on PLAYING and the idle clock, from ms_playing
+  - id: ms_render_play
+    then:
+      - lvgl.label.update:
+          id: ms_idle_state
+          text: !lambda |-
+            if (id(ms_np_idle)) return std::string("");
+            return std::string(id(ms_playing) ? "PLAYING" : "PAUSED");
+      - lvgl.widget.update:
+          id: ms_idle_dot
+          bg_color: !lambda "return id(ms_playing) ? lv_color_hex(0xB04A12) : lv_color_hex(0x5A5A5A);"
+      - if:
+          condition:
+            lambda: return id(ms_playing);
+          then:
+            - lvgl.widget.hide: ms_ic_play_img
+            - lvgl.widget.hide: ms_idle_play_img
+            - lvgl.widget.show: ms_ic_pause_img
+            - lvgl.widget.show: ms_idle_pause_img
+          else:
+            - lvgl.widget.hide: ms_ic_pause_img
+            - lvgl.widget.hide: ms_idle_pause_img
+            - lvgl.widget.show: ms_ic_play_img
+            - lvgl.widget.show: ms_idle_play_img
+
+  # Tap on play/pause: flip at once, freeze/resume the local progress at its current point
+  - id: ms_tap_play_pause
+    then:
+      - lambda: |-
+          int32_t pos = id(ms_pos_ms);
+          if (id(ms_playing)) pos += millis() - id(ms_pos_at);
+          if (pos > id(ms_dur_ms)) pos = id(ms_dur_ms);
+          id(ms_pos_ms) = pos;
+          id(ms_pos_at) = millis();
+          id(ms_playing) = !id(ms_playing);
+          id(ms_play_hold_until) = millis() + 4000;
+      - script.execute: ms_render_play
+      - script.execute: { id: ms_send_input, type: control, arg: play_pause, value: 0 }
+
+  # Tap on next/previous: the next track is unknown, but the progress starts at 0:00
+  - id: ms_tap_skip
+    parameters:
+      command: string
+    then:
+      - lambda: |-
+          id(ms_pos_ms) = 0;
+          id(ms_pos_at) = millis();
+          id(ms_pos_hold_until) = millis() + 4000;
+      - lvgl.slider.update: { id: ms_progress, value: 0 }
+      - lvgl.label.update: { id: ms_np_pos, text: "0:00" }
+      - script.execute:
+          id: ms_send_input
+          type: control
+          arg: !lambda return command;
+          value: 0
 
   - id: ms_render_toggles
     then:
@@ -694,10 +754,18 @@ api:
       then:
         - lambda: |-
             id(ms_np_received) = true;
-            id(ms_playing) = (state == "playing");
-            id(ms_pos_ms) = position_ms;
+            id(ms_np_idle) = (state == "idle");
+            // Play/pause and next/previous are shown at tap; ignore Spotify's stale
+            // state/position for 4 s (a new track title always gets through)
+            bool hold_play = (int32_t) (millis() - id(ms_play_hold_until)) < 0;
+            bool hold_pos = title == id(ms_np_cur_title) && (int32_t) (millis() - id(ms_pos_hold_until)) < 0;
+            if (!hold_play) id(ms_playing) = (state == "playing");
             id(ms_dur_ms) = duration_ms;
-            id(ms_pos_at) = millis();
+            if (!hold_play && !hold_pos) {
+              id(ms_pos_ms) = position_ms;
+              id(ms_pos_at) = millis();
+            }
+            id(ms_np_cur_title) = title;
         - lvgl.label.update:
             id: ms_np_title
             text: !lambda |-
@@ -730,26 +798,7 @@ api:
             text: !lambda |-
               if (state == "idle" || title.empty()) return std::string("Nothing playing");
               return artist.empty() ? title : title + " \xE2\x80\x94 " + artist;
-        - lvgl.label.update:
-            id: ms_idle_state
-            text: !lambda |-
-              return std::string(state == "playing" ? "PLAYING" : state == "paused" ? "PAUSED" : "");
-        - lvgl.widget.update:
-            id: ms_idle_dot
-            bg_color: !lambda "return state == \"playing\" ? lv_color_hex(0xB04A12) : lv_color_hex(0x5A5A5A);"
-        - if:
-            condition:
-              lambda: return state == "playing";
-            then:
-              - lvgl.widget.hide: ms_ic_play_img
-              - lvgl.widget.hide: ms_idle_play_img
-              - lvgl.widget.show: ms_ic_pause_img
-              - lvgl.widget.show: ms_idle_pause_img
-            else:
-              - lvgl.widget.hide: ms_ic_pause_img
-              - lvgl.widget.hide: ms_idle_pause_img
-              - lvgl.widget.show: ms_ic_play_img
-              - lvgl.widget.show: ms_idle_play_img
+        - script.execute: ms_render_play
         # Shuffle/like: a tap shows the new state at once; Spotify's (stale) value is
         # ignored for 4 s, after which the integration re-sends the real state
         - lambda: |-
@@ -1644,7 +1693,7 @@ lvgl:
                         border_side: [RIGHT]
                         border_color: ms_c_line
                         on_click:
-                          - script.execute: { id: ms_send_input, type: control, arg: previous, value: 0 }
+                          - script.execute: { id: ms_tap_skip, command: previous }
                         widgets:
                           - image: { src: ms_ic_prev, align: CENTER, styles: ms_st_icon }
                     - button:
@@ -1657,7 +1706,7 @@ lvgl:
                         border_side: [RIGHT]
                         border_color: ms_c_line
                         on_click:
-                          - script.execute: { id: ms_send_input, type: control, arg: play_pause, value: 0 }
+                          - script.execute: ms_tap_play_pause
                         widgets:
                           - image: { id: ms_ic_play_img, src: ms_ic_play, align: CENTER, styles: ms_st_icon_on_accent }
                           - image: { id: ms_ic_pause_img, src: ms_ic_pause, align: CENTER, hidden: true, styles: ms_st_icon_on_accent }
@@ -1669,7 +1718,7 @@ lvgl:
                         border_side: [RIGHT]
                         border_color: ms_c_line
                         on_click:
-                          - script.execute: { id: ms_send_input, type: control, arg: next, value: 0 }
+                          - script.execute: { id: ms_tap_skip, command: next }
                         widgets:
                           - image: { src: ms_ic_next, align: CENTER, styles: ms_st_icon }
                     - button:
@@ -2562,7 +2611,7 @@ lvgl:
                   border_side: [LEFT]
                   border_color: ms_c_idle_line
                   on_click:
-                    - script.execute: { id: ms_send_input, type: control, arg: play_pause, value: 0 }
+                    - script.execute: ms_tap_play_pause
                   widgets:
                     - image:
                         id: ms_idle_play_img
