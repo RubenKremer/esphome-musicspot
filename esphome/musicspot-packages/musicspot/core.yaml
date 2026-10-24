@@ -8,7 +8,7 @@
 
 substitutions:
   # Firmware version: bump together with custom_components/musicspot/manifest.json
-  musicspot_version: "0.7.1"
+  musicspot_version: "0.7.2"
 
 packages:
   theme: !include theme.yaml

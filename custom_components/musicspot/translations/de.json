@@ -1,0 +1,83 @@
+{
+  "application_credentials": {
+    "description": "Erstelle eine App im [Spotify Developer Dashboard]({developer_dashboard_url}) (der Besitzer der App braucht Spotify Premium), wähle **Web API** und füge `{redirect_url}` als Redirect URI hinzu. Gib dann hier die Client ID und das Client Secret der App ein."
+  },
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Anmeldemethode wählen"
+      },
+      "reauth_confirm": {
+        "title": "MusicSpot erneut anmelden",
+        "description": "Spotify verlangt eine erneute Anmeldung für {account}."
+      }
+    },
+    "abort": {
+      "already_configured": "Dieses Spotify-Konto ist bereits eingerichtet.",
+      "already_in_progress": "Die Einrichtung läuft bereits.",
+      "authorize_url_timeout": "Zeitüberschreitung beim Erstellen der Autorisierungs-URL.",
+      "connection_error": "Spotify ist nicht erreichbar.",
+      "missing_configuration": "MusicSpot ist nicht eingerichtet. Füge zuerst Spotify-Anwendungsdaten hinzu.",
+      "missing_credentials": "Füge Spotify-Anwendungsdaten (Client ID und Secret) hinzu, um fortzufahren.",
+      "no_url_available": "Keine URL verfügbar. Prüfe die URL-Einstellungen von Home Assistant.",
+      "oauth_error": "Ungültige Token-Daten von Spotify erhalten.",
+      "oauth_failed": "Die Anmeldung bei Spotify ist fehlgeschlagen.",
+      "oauth_timeout": "Zeitüberschreitung beim Warten auf die Spotify-Anmeldung.",
+      "oauth_unauthorized": "Die Anmeldung bei Spotify wurde nicht autorisiert.",
+      "reauth_successful": "Die erneute Anmeldung war erfolgreich.",
+      "user_not_premium": "Diese Spotify-App funktioniert nur mit einem Spotify-Premium-Konto.",
+      "wrong_account": "Du hast dich mit einem anderen Spotify-Konto angemeldet als dem, das erneut angemeldet wird."
+    },
+    "create_entry": {
+      "default": "Erfolgreich mit Spotify verbunden."
+    }
+  },
+  "config_subentries": {
+    "panel": {
+      "initiate_flow": {
+        "user": "Panel hinzufügen",
+        "reconfigure": "Panel neu konfigurieren"
+      },
+      "entry_type": "Panel",
+      "step": {
+        "user": {
+          "title": "MusicSpot-Panel hinzufügen",
+          "description": "Wähle ein ESPHome-Gerät mit der MusicSpot-Firmware. Es steuert dieses Spotify-Konto.",
+          "data": {
+            "device_id": "Panel",
+            "art_base_url": "Basis-URL für Albumcover",
+            "default_device": "Standard-Wiedergabegerät"
+          },
+          "data_description": {
+            "device_id": "Das ESPHome-Gerät mit MusicSpot. Es muss online sein.",
+            "art_base_url": "Wie das Panel Home Assistant für Albumcover erreicht, z. B. http://192.168.1.2:8123. Einfaches HTTP im eigenen Netz ist am schnellsten. Leer lassen, um die interne URL von Home Assistant zu verwenden.",
+            "default_device": "Name des Spotify-Geräts, auf dem die Wiedergabe startet, wenn nichts aktiv ist, z. B. Wohnzimmer. Optional."
+          }
+        },
+        "reconfigure": {
+          "title": "{panel} neu konfigurieren",
+          "description": "Ändere, wie dieses Panel Albumcover lädt, wo die Wiedergabe startet und die Nachtzeit.",
+          "data": {
+            "art_base_url": "Basis-URL für Albumcover",
+            "default_device": "Standard-Wiedergabegerät",
+            "night_start": "Nacht beginnt",
+            "night_end": "Nacht endet"
+          },
+          "data_description": {
+            "art_base_url": "Einfaches HTTP im eigenen Netz, z. B. http://192.168.1.2:8123. Mit HTTPS friert das Panel beim Laden von Bildern ein. Leer lassen, um die interne URL von Home Assistant zu verwenden.",
+            "default_device": "Name des Spotify-Geräts, auf dem die Wiedergabe startet, wenn nichts aktiv ist. Optional.",
+            "night_start": "Wird für das nächtliche Dimmen und die Lautstärke-Wiederherstellung nach dem Sleep-Timer verwendet. Standard 22:00.",
+            "night_end": "Standard 07:00."
+          }
+        }
+      },
+      "error": {
+        "not_musicspot": "Dieses Gerät bietet die MusicSpot-Aktionen nicht an. Prüfe, ob die MusicSpot-Firmware darauf läuft und ob es mit Home Assistant verbunden ist."
+      },
+      "abort": {
+        "already_configured": "Dieses Panel ist bereits mit einem Spotify-Konto verbunden.",
+        "reconfigure_successful": "Panel aktualisiert."
+      }
+    }
+  }
+}

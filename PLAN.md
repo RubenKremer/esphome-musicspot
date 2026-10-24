@@ -120,7 +120,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ## Phase 7 — Polish & release
 - [x] P7.1 Dim/screensaver after inactivity; wake on touch (optional LD2410 presence) — verified: design C idle clock after 2 min, tap wakes, 2026-10-24 (dimming and presence still open, see Settings design)
 - [ ] P7.2 Release images when leaving Browse; check free PSRAM over 24 h
-- [ ] P7.3 Translations (en, nl)
+- [ ] P7.3 Translations (en, nl, de) — nl + de written 2026-10-24 (integration dialogs; panel screens stay English); verify in HA
 - [ ] P7.4 GitHub Actions: `hassfest` + HACS validation; ESPHome config compile check
 - [ ] P7.5 README: setup (Spotify app, HACS install, flashing), limits, screenshots
 - [ ] P7.6 First tagged release (after the UI polish block below)
