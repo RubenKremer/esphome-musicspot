@@ -564,16 +564,28 @@ script:
       - script.execute: ms_spl_seg_23_set
       - script.execute: ms_spl_seg_24_set
 
+  # READY: keep the finished splash up for 9 s, then go to PLAYING
   - id: ms_splash_finish
     mode: single
     then:
-      - delay: 1s
-      - lambda: id(ms_splash_done) = true;
-      - lvgl.widget.show: ms_navbar
-      - script.execute: ms_update_offline
-      - script.execute:
-          id: ms_nav
-          screen: 0
+      - delay: 9s
+      - script.execute: ms_splash_leave
+
+  # Leave the splash now (end of the wait, or a tap)
+  - id: ms_splash_leave
+    mode: single
+    then:
+      - script.stop: ms_splash_finish
+      - if:
+          condition:
+            lambda: return !id(ms_splash_done);
+          then:
+            - lambda: id(ms_splash_done) = true;
+            - lvgl.widget.show: ms_navbar
+            - script.execute: ms_update_offline
+            - script.execute:
+                id: ms_nav
+                screen: 0
 
   - id: ms_refresh_device_rows
     then:
@@ -1205,7 +1217,7 @@ lvgl:
             pressed:
               bg_opa: TRANSP
             on_click:
-              - script.execute: ms_splash_finish
+              - script.execute: ms_splash_leave
         - obj:
             width: 480
             height: 480
