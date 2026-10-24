@@ -233,7 +233,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-24: Source selector (v1.1) and Albums 4×2 grid confirmed on device.
 - 2026-10-24: Backlight turns off below 22 % brightness = ~1.4 % PWM duty after the light's default 2.8 gamma; fixed with `min_power` on the LEDC output (D32).
 - 2026-10-24: Package folder renamed to `esphome/musicspot-packages/` (server copy renamed too); full firmware incl. paged SETUP and versions works on device.
-- 2026-10-24: Opening the paged SETUP crashed the panel (LoadProhibited inside the logger right after a slow loop pass): memory corrupted during LVGL's recursive layout/draw of the deepest screen — almost certainly a stack overflow of the 8 KB main loop task (which runs LVGL). Fix: `esp32.framework.advanced.loop_task_stack_size: 16384` and one nesting level less in SETUP.
+- 2026-10-24: Opening the paged SETUP crashed the panel (LoadProhibited inside the logger right after a slow loop pass): memory corrupted during LVGL's recursive layout/draw of the deepest screen — almost certainly a stack overflow of the 8 KB main loop task (which runs LVGL). Fix: `esp32.framework.advanced.loop_task_stack_size: 16384` and one nesting level less in SETUP. Confirmed: no more crashes.
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
