@@ -141,7 +141,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
 - [ ] P7.14 Decide on the debug sensors (reset reason, heap, PSRAM): keep as diagnostics or move to an optional package before release
 - [ ] P7.16 Boot splash (D33) — built 2026-10-24, not yet verified
-- [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep timer** (D29)
+- [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep timer** (D29) — built 2026-10-24 (scrollable SETUP list, Output screen, sleep timer with fade/recovery, dim at night, clock timeout); not yet verified
 
 ## Phase 8 — Optional: Music Assistant backend (later)
 Why: Spotify forgets idle Google Cast speakers and the Web API can't wake them (Findings 2026-10-23).

@@ -46,6 +46,16 @@ Up next (read-only Spotify queue), sent after a `queue_view` or `queue_page` eve
 | `page`, `pages` | int | 5 rows per page |
 | `nums`, `titles`, `artists`, `durations` | string[] | Up to 5 rows; numbers continue across pages |
 
+### `show_settings`
+Values for SETUP that Home Assistant owns. Sent on hello and whenever the sleep timer changes (every 15 s while it runs).
+| Field | Type | Notes |
+|---|---|---|
+| `night_start_min`, `night_end_min` | int | Night hours as minutes since midnight (D31; set in the panel's Reconfigure) |
+| `default_device` | string | Default playback device (Reconfigure), upper case; empty = none |
+| `version` | string | Integration version, e.g. `V0.6.0` |
+| `sleep_minutes` | int | Chosen sleep timer (15/30/60/90), `0` = off |
+| `sleep_remaining_s` | int | Seconds left; the panel counts down locally |
+
 ### `show_devices`
 | Field | Type | Notes |
 |---|---|---|
@@ -81,6 +91,7 @@ Home Assistant adds the panel's `device_id`.
 | `back` | | `0` | Library: up one folder |
 | `tab` | | `0`–`3` | Library tab selected |
 | `queue_view` | | `0` | QUEUE pressed on PLAYING: send the queue |
+| `sleep` | | `15` / `30` / `60` / `90`, `0` = off | Sleep timer (D29); the panel switches to the dim clock itself |
 | `queue_page` | | `-1` / `1` | Up next previous / next page |
 | `page` | | `-1` / `1` | Previous / next browse page |
 | `device` | | slot `1`–`5` | Transfer playback to that device |

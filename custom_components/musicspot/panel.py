@@ -18,10 +18,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.network import NoURLAvailableError, get_url
+from homeassistant.loader import async_get_integration
 
 from .api import SpotifyApiError, SpotifyNotFoundError
 from .art import ArtStore
 from .browse import GRID_SIZE, Browser, Row, _duration
+from .sleep import SleepTimer
 from .const import (
     ART_SIZE_NOW,
     ART_SIZE_THUMB,
@@ -29,6 +31,11 @@ from .const import (
     CONF_ART_BASE_URL,
     CONF_DEFAULT_DEVICE,
     CONF_DEVICE_ID,
+    CONF_NIGHT_END,
+    CONF_NIGHT_START,
+    DEFAULT_NIGHT_END,
+    DEFAULT_NIGHT_START,
+    DOMAIN,
     ESPHOME_DOMAIN,
     LOGGER,
 )
@@ -88,6 +95,15 @@ class MusicSpotPanel:
         self.title = subentry.title
         self._art_base_url: str = subentry.data.get(CONF_ART_BASE_URL) or ""
         self._default_device: str = subentry.data.get(CONF_DEFAULT_DEVICE) or ""
+        self._night_start: str = subentry.data.get(CONF_NIGHT_START) or DEFAULT_NIGHT_START
+        self._night_end: str = subentry.data.get(CONF_NIGHT_END) or DEFAULT_NIGHT_END
+        self._sleep = SleepTimer(
+            hass,
+            coordinator,
+            lambda: (self._night_start, self._night_end),
+            self.async_push_settings,
+        )
+        self._version = ""
         self._art_store = art_store
         self._token = secrets.token_urlsafe(16)
         self._unsub_coordinator: Any = None
@@ -142,6 +158,7 @@ class MusicSpotPanel:
             self._unsub_coordinator = None
         self.coordinator.set_awake(self.key, False)
         self._art_store.unregister(self._token)
+        self._sleep.async_stop()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -187,7 +204,24 @@ class MusicSpotPanel:
         """Push everything (panel connected or woke up)."""
         await self.async_push_now_playing(force=True)
         await self.async_push_devices()
+        await self.async_push_settings()
         await self.async_push_browse()
+
+    async def async_push_settings(self) -> None:
+        """Settings shown on SETUP and used by the panel (night hours, sleep timer)."""
+        if not self._version:
+            self._version = str((await async_get_integration(self.hass, DOMAIN)).version or "")
+        await self._call(
+            "show_settings",
+            {
+                "night_start_min": _minutes(self._night_start),
+                "night_end_min": _minutes(self._night_end),
+                "default_device": self._default_device.upper(),
+                "version": f"V{self._version}",
+                "sleep_minutes": self._sleep.minutes,
+                "sleep_remaining_s": self._sleep.remaining_s,
+            },
+        )
 
     async def async_push_browse(self) -> None:
         """Load the current browse page and send it with its thumbnails."""
@@ -479,6 +513,11 @@ class MusicSpotPanel:
         elif type_ == "tab":
             self._browser.select_tab(value)
             await self.async_push_browse()
+        elif type_ == "sleep":
+            if value > 0:
+                await self._sleep.async_start(value)
+            else:
+                await self._sleep.async_cancel()
         elif type_ == "queue_view":
             await self._async_load_queue()
             self._queue_page = 1
@@ -717,3 +756,9 @@ def _artists(item: dict[str, Any]) -> str:
     if item.get("type") == "episode":
         return (item.get("show") or {}).get("name", "")
     return ", ".join(a.get("name", "") for a in item.get("artists", []))
+
+
+def _minutes(value: str) -> int:
+    """'22:00:00' -> minutes since midnight."""
+    hours, minutes = (value.split(":") + ["0"])[:2]
+    return int(hours) * 60 + int(minutes)

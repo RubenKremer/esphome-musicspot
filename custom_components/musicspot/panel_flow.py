@@ -14,12 +14,17 @@ from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
+    TimeSelector,
 )
 
 from .const import (
     CONF_ART_BASE_URL,
     CONF_DEFAULT_DEVICE,
     CONF_DEVICE_ID,
+    CONF_NIGHT_END,
+    CONF_NIGHT_START,
+    DEFAULT_NIGHT_END,
+    DEFAULT_NIGHT_START,
     DOMAIN,
     ESPHOME_DOMAIN,
     SUBENTRY_PANEL,
@@ -84,6 +89,8 @@ class PanelSubentryFlowHandler(ConfigSubentryFlow):
                 data_updates={
                     CONF_ART_BASE_URL: (user_input.get(CONF_ART_BASE_URL) or "").rstrip("/"),
                     CONF_DEFAULT_DEVICE: user_input.get(CONF_DEFAULT_DEVICE) or "",
+                    CONF_NIGHT_START: user_input.get(CONF_NIGHT_START) or DEFAULT_NIGHT_START,
+                    CONF_NIGHT_END: user_input.get(CONF_NIGHT_END) or DEFAULT_NIGHT_END,
                 },
             )
 
@@ -93,11 +100,20 @@ class PanelSubentryFlowHandler(ConfigSubentryFlow):
                     TextSelectorConfig(type=TextSelectorType.URL)
                 ),
                 vol.Optional(CONF_DEFAULT_DEVICE): TextSelector(),
+                vol.Optional(CONF_NIGHT_START): TimeSelector(),
+                vol.Optional(CONF_NIGHT_END): TimeSelector(),
             }
         )
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=self.add_suggested_values_to_schema(schema, subentry.data),
+            data_schema=self.add_suggested_values_to_schema(
+                schema,
+                {
+                    CONF_NIGHT_START: DEFAULT_NIGHT_START,
+                    CONF_NIGHT_END: DEFAULT_NIGHT_END,
+                    **subentry.data,
+                },
+            ),
             description_placeholders={"panel": subentry.title},
         )
 

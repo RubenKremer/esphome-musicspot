@@ -106,7 +106,21 @@ globals:
   - { id: ms_pos_hold_until, type: uint32_t, initial_value: "0" }
   - { id: ms_np_cur_title, type: std::string, initial_value: '""' }
   - { id: ms_np_idle, type: bool, initial_value: "true" }
-  - { id: ms_brightness, type: int, initial_value: "70" }
+  # Settings kept on the panel across reboots (brightness, clock timeout, dim at night)
+  - { id: ms_bri_user, type: int, restore_value: yes, initial_value: "70" }
+  - { id: ms_dim_night, type: bool, restore_value: yes, initial_value: "false" }
+  - { id: ms_clock_after, type: int, restore_value: yes, initial_value: "2" }
+  # Night hours (minutes since midnight) come from Home Assistant; kept for offline use
+  - { id: ms_night_start, type: int, restore_value: yes, initial_value: "1320" }
+  - { id: ms_night_end, type: int, restore_value: yes, initial_value: "420" }
+  - { id: ms_dim_suspended, type: bool, initial_value: "false" }
+  - { id: ms_bri_override, type: bool, initial_value: "false" }
+  - { id: ms_bri_target, type: int, initial_value: "70" }
+  - { id: ms_bri_applied, type: int, initial_value: "-1" }
+  - { id: ms_sleep_minutes, type: int, initial_value: "0" }
+  - { id: ms_sleep_end_at, type: uint32_t, initial_value: "0" }
+  - { id: ms_last_touch, type: uint32_t, initial_value: "0" }
+  - { id: ms_brightness, type: int, initial_value: "70" }  # shown on the bar (= ms_bri_user)
   - { id: ms_bri_drag, type: bool, initial_value: "false" }
   - { id: ms_grid, type: bool, initial_value: "false" }
   - { id: ms_now_index, type: int, initial_value: "-1" }
@@ -417,17 +431,140 @@ script:
       - script.execute: ms_vol_seg_15_set
       - script.execute: ms_vol_seg_16_set
 
-  # Read the backlight's target brightness into the bar (the slider only sets the light on release)
+  # Backlight changed (here or from Home Assistant): adopt it as the user's level, unless
+  # dim at night or the sleep clock is overriding it
   - id: ms_bri_sync
     then:
       - lambda: |-
-          auto values = id(display_backlight).remote_values;
-          id(ms_brightness) = values.is_on() ? (int) roundf(values.get_brightness() * 100) : 0;
+          if (!id(ms_bri_override)) {
+            auto values = id(display_backlight).remote_values;
+            if (values.is_on()) id(ms_bri_user) = (int) roundf(values.get_brightness() * 100);
+          }
+          id(ms_brightness) = id(ms_bri_user);
       - lvgl.slider.update:
           id: ms_bri_slider
           value: !lambda return id(ms_brightness);
       - script.execute: ms_bri_render
 
+  # Effective backlight: sleep clock 10 %, dim at night caps at 25 %, otherwise the user's level
+  - id: ms_apply_backlight
+    then:
+      - lambda: |-
+          bool night = false;
+          auto now = id(ms_time).now();
+          if (now.is_valid()) {
+            int m = now.hour * 60 + now.minute;
+            int a = id(ms_night_start), b = id(ms_night_end);
+            night = a <= b ? (m >= a && m < b) : (m >= a || m < b);
+          }
+          if (!night) id(ms_dim_suspended) = false;
+          int target = id(ms_bri_user);
+          if (id(ms_sleep_minutes) > 0 && id(ms_idle)) target = 10;
+          else if (id(ms_dim_night) && night && !id(ms_dim_suspended) && target > 25) target = 25;
+          id(ms_bri_override) = target != id(ms_bri_user);
+          id(ms_bri_target) = target;
+      - if:
+          condition:
+            lambda: return id(ms_bri_target) != id(ms_bri_applied);
+          then:
+            - lambda: id(ms_bri_applied) = id(ms_bri_target);
+            - light.turn_on:
+                id: display_backlight
+                brightness: !lambda return id(ms_bri_target) / 100.0;
+                transition_length: 1s
+
+  # Sleep timer tap (optimistic; the integration runs the real timer, D29)
+  - id: ms_set_sleep
+    parameters:
+      minutes: int
+    then:
+      - lambda: |-
+          id(ms_sleep_minutes) = minutes;
+          id(ms_sleep_end_at) = millis() + (uint32_t) minutes * 60000;
+      - script.execute: ms_sleep_render
+      - script.execute:
+          id: ms_send_input
+          type: sleep
+          arg: ""
+          value: !lambda return minutes;
+      - if:
+          condition:
+            lambda: return minutes > 0;
+          then:
+            - script.execute: { id: ms_set_awake, awake: false }
+            - script.execute: ms_go_idle
+          else:
+            - script.execute: ms_apply_backlight
+
+  - id: ms_sleep_render
+    then:
+      - lvgl.widget.update:
+          id: ms_sleep_opt_0
+          bg_color: !lambda "return id(ms_sleep_minutes) == 0 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_sleep_opt_0_lbl
+          text_color: !lambda "return id(ms_sleep_minutes) == 0 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_sleep_opt_1
+          bg_color: !lambda "return id(ms_sleep_minutes) == 15 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_sleep_opt_1_lbl
+          text_color: !lambda "return id(ms_sleep_minutes) == 15 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_sleep_opt_2
+          bg_color: !lambda "return id(ms_sleep_minutes) == 30 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_sleep_opt_2_lbl
+          text_color: !lambda "return id(ms_sleep_minutes) == 30 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_sleep_opt_3
+          bg_color: !lambda "return id(ms_sleep_minutes) == 60 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_sleep_opt_3_lbl
+          text_color: !lambda "return id(ms_sleep_minutes) == 60 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_sleep_opt_4
+          bg_color: !lambda "return id(ms_sleep_minutes) == 90 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_sleep_opt_4_lbl
+          text_color: !lambda "return id(ms_sleep_minutes) == 90 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - if:
+          condition:
+            lambda: return id(ms_sleep_minutes) > 0;
+          then:
+            - lvgl.widget.show: ms_idle_sleep
+          else:
+            - lvgl.widget.hide: ms_idle_sleep
+
+  - id: ms_dim_render
+    then:
+      - lvgl.widget.update:
+          id: ms_dim_opt_0
+          bg_color: !lambda "return id(ms_dim_night) ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_dim_opt_0_lbl
+          text_color: !lambda "return id(ms_dim_night) ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_dim_opt_1
+          bg_color: !lambda "return !id(ms_dim_night) ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+      - lvgl.label.update:
+          id: ms_dim_opt_1_lbl
+          text_color: !lambda "return !id(ms_dim_night) ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+
+  - id: ms_clock_setting_render
+    then:
+      - lvgl.label.update:
+          id: ms_set_clock
+          text: !lambda |-
+            if (id(ms_clock_after) <= 0) return std::string("NEVER >");
+            return str_sprintf("%d MIN >", id(ms_clock_after));
+
+  - id: ms_show_output
+    then:
+      - script.execute:
+          id: ms_nav
+          screen: 2
+      - lvgl.page.show: ms_page_output
   - id: ms_bri_render
     then:
       - lvgl.label.update:
@@ -640,7 +777,9 @@ script:
           condition:
             lambda: return !id(ms_splash_done);
           then:
-            - lambda: id(ms_splash_done) = true;
+            - lambda: |-
+                id(ms_splash_done) = true;
+                id(ms_last_touch) = millis();
             - lvgl.widget.show: ms_navbar
             - script.execute: ms_update_offline
             - script.execute:
@@ -682,10 +821,14 @@ script:
       - script.execute: ms_clock_render
       - lvgl.widget.hide: ms_navbar
       - lvgl.page.show: ms_page_idle
+      - script.execute: ms_apply_backlight
 
   - id: ms_wake
     then:
-      - lambda: id(ms_idle) = false;
+      - lambda: |-
+          id(ms_idle) = false;
+          id(ms_last_touch) = millis();
+      - script.execute: ms_apply_backlight
       - lvgl.widget.show: ms_navbar
       - script.execute: { id: ms_nav, screen: 0 }
       - script.execute: { id: ms_set_awake, awake: true }
@@ -695,8 +838,16 @@ esphome:
   on_boot:
     - priority: -100
       then:
-        - script.execute: ms_bri_sync
+        - lambda: id(ms_brightness) = id(ms_bri_user);
+        - lvgl.slider.update:
+            id: ms_bri_slider
+            value: !lambda return id(ms_brightness);
+        - script.execute: ms_bri_render
         - script.execute: ms_vol_render
+        - script.execute: ms_sleep_render
+        - script.execute: ms_dim_render
+        - script.execute: ms_clock_setting_render
+        - script.execute: ms_apply_backlight
 
 # Brightness bar follows the backlight, also when it is changed from Home Assistant
 light:
@@ -707,6 +858,7 @@ light:
 touchscreen:
   - id: !extend my_touchscreen
     on_touch:
+      - lambda: id(ms_last_touch) = millis();
       - script.execute:
           id: ms_set_awake
           awake: true
@@ -947,6 +1099,36 @@ api:
               - lvgl.widget.hide: ms_q_empty
         - script.execute: ms_q_refresh_rows
 
+    # SETUP values owned by Home Assistant (night hours, default speaker, sleep timer)
+    - action: show_settings
+      variables:
+        night_start_min: int
+        night_end_min: int
+        default_device: string
+        version: string
+        sleep_minutes: int
+        sleep_remaining_s: int
+      then:
+        - lambda: |-
+            id(ms_night_start) = night_start_min;
+            id(ms_night_end) = night_end_min;
+            id(ms_sleep_minutes) = sleep_minutes;
+            id(ms_sleep_end_at) = millis() + (uint32_t) sleep_remaining_s * 1000;
+        - lvgl.label.update:
+            id: ms_set_night
+            text: !lambda |-
+              return str_sprintf("%02d:%02d - %02d:%02d", (int) night_start_min / 60, (int) night_start_min % 60,
+                                 (int) night_end_min / 60, (int) night_end_min % 60);
+        - lvgl.label.update:
+            id: ms_set_default
+            text: !lambda |-
+              return default_device.empty() ? std::string("-") : default_device;
+        - lvgl.label.update:
+            id: ms_set_version
+            text: !lambda return version;
+        - script.execute: ms_sleep_render
+        - script.execute: ms_apply_backlight
+
     - action: show_devices
       variables:
         names: string[]
@@ -956,6 +1138,13 @@ api:
             id(ms_devices) = names;
             id(ms_active_device) = active;
             id(ms_splash_devices) = names.size();
+        - lvgl.label.update:
+            id: ms_set_output
+            text: !lambda |-
+              if (active < 0 || active >= (int) names.size()) return std::string("NONE >");
+              std::string name = names[active];
+              for (auto &c : name) c = toupper(c);
+              return name + " >";
         - if:
             condition:
               lambda: return names.empty();
@@ -1000,11 +1189,46 @@ api:
             id: ms_nav
             screen: !lambda |-
               return screen == "browse" ? 1 : screen == "devices" ? 2 : 0;
+        - if:
+            condition:
+              lambda: return screen == "devices";
+            then:
+              - lvgl.page.show: ms_page_output
 
 # -------------------------------------------
 # Timers
 # -------------------------------------------
 interval:
+  # Clock screen after N minutes without touch (SETUP; NEVER = off, but 2 min while a sleep timer runs)
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              if (!id(ms_splash_done) || id(ms_idle)) return false;
+              uint32_t limit = id(ms_clock_after) > 0 ? (uint32_t) id(ms_clock_after) * 60000u
+                             : (id(ms_sleep_minutes) > 0 ? 120000u : 0u);
+              return limit > 0 && millis() - id(ms_last_touch) > limit;
+          then:
+            - script.execute: { id: ms_set_awake, awake: false }
+            - script.execute: ms_go_idle
+  # Sleep countdown on the idle clock
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_idle) && id(ms_sleep_minutes) > 0;
+          then:
+            - lvgl.label.update:
+                id: ms_idle_sleep
+                text: !lambda |-
+                  int32_t left = (int32_t) (id(ms_sleep_end_at) - millis()) / 1000;
+                  if (left < 0) left = 0;
+                  return str_sprintf("SLEEP %d:%02d", left / 60, left % 60);
+  # Night starts/ends: re-evaluate the backlight
+  - interval: 60s
+    then:
+      - script.execute: ms_apply_backlight
   # Boot splash: advance milestones and animate the bar (150 ms per segment)
   - interval: 150ms
     then:
@@ -1096,16 +1320,6 @@ lvgl:
     - my_display
   touchscreens:
     - my_touchscreen
-  on_idle:
-    timeout: 120s
-    then:
-      - if:
-          condition:
-            lambda: return !id(ms_idle) && id(ms_splash_done);
-          then:
-            - script.execute: { id: ms_set_awake, awake: false }
-            - script.execute: ms_go_idle
-
   top_layer:
     widgets:
       # Bottom navigation: PLAYING / LIBRARY / SETUP with a 3 px accent bar on the active tab
@@ -1526,7 +1740,7 @@ lvgl:
                           pad_column: 8
                           pad_row: 0
                         on_click:
-                          - script.execute: { id: ms_nav, screen: 2 }
+                          - script.execute: ms_show_output
                         widgets:
                           - obj:
                               width: 6
@@ -2196,7 +2410,7 @@ lvgl:
                               widgets:
                                 - image: { id: ms_pg_dn_img, src: ms_ic_down, align: CENTER, styles: ms_st_icon }
 
-    # ---------------- SETUP (output device + brightness; full design C Settings later) ----------------
+    # ---------------- SETUP (design C settings list; scrolls) ----------------
     - id: ms_page_setup
       bg_color: ms_c_bg
       bg_opa: COVER
@@ -2210,7 +2424,8 @@ lvgl:
             pad_left: 18
             pad_right: 18
             pad_bottom: 14
-            scrollable: false
+            scrollable: true
+            scrollbar_mode: AUTO
             layout:
               type: flex
               flex_flow: COLUMN
@@ -2218,28 +2433,16 @@ lvgl:
               pad_column: 0
             widgets:
               - label:
-                  text: "SETUP / OUTPUT"
+                  text: "SETUP / DEVICE"
                   height: 32
                   pad_top: 10
                   styles: ms_st_label
-              - label:
-                  id: ms_devices_empty
-                  text: "No speakers found. Open Spotify on a speaker, phone or computer."
-                  width: 100%
-                  long_mode: WRAP
-                  pad_bottom: 8
-                  text_font: ms_sans14
-                  text_color: ms_c_dim
-              - button: !include { file: widgets/device_row.yaml, vars: { n: 1 } }
-              - button: !include { file: widgets/device_row.yaml, vars: { n: 2 } }
-              - button: !include { file: widgets/device_row.yaml, vars: { n: 3 } }
-              - button: !include { file: widgets/device_row.yaml, vars: { n: 4 } }
-              - button: !include { file: widgets/device_row.yaml, vars: { n: 5 } }
+              # Brightness (10 segments)
               - obj:
                   width: 100%
                   height: 50
                   border_width: 1
-                  border_side: [TOP, BOTTOM]
+                  border_side: [TOP]
                   border_color: ms_c_line
                   scrollable: false
                   layout:
@@ -2267,23 +2470,23 @@ lvgl:
                                 pad_column: 3
                                 pad_row: 0
                               widgets:
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 1 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 2 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 3 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 4 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 5 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 6 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 7 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 8 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 9 } }
-                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 10 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 1 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 2 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 3 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 4 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 5 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 6 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 7 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 8 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 9 } }
+                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 10 } }
                           - slider:
                               id: ms_bri_slider
                               width: 100%
                               height: 100%
-                              min_value: 10
+                              min_value: 5
                               max_value: 100
-                              value: 100
+                              value: 70
                               bg_opa: TRANSP
                               indicator:
                                 bg_opa: TRANSP
@@ -2299,17 +2502,388 @@ lvgl:
                                       - lambda: id(ms_brightness) = (int) x;
                                       - script.execute: ms_bri_render
                               on_release:
-                                - lambda: id(ms_bri_drag) = false;
-                                - light.turn_on:
-                                    id: display_backlight
-                                    brightness: !lambda return x / 100.0;
+                                - lambda: |-
+                                    id(ms_bri_drag) = false;
+                                    id(ms_bri_user) = (int) x;
+                                    id(ms_dim_suspended) = true;  // a manual change wins until the night ends
+                                - script.execute: ms_apply_backlight
                     - label:
                         id: ms_bri_value
-                        text: "100"
+                        text: "70"
                         width: 30
                         text_align: RIGHT
                         text_font: ms_mono12
                         text_color: ms_c_fg
+              # Sleep timer: OFF | 15 | 30 | 60 | 90 (D29)
+              - obj:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  widgets:
+                    - label: { text: "Sleep timer", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                    - obj:
+                        width: SIZE_CONTENT
+                        height: 30
+                        styles: ms_st_box
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          pad_column: 0
+                          pad_row: 0
+                        widgets:
+                          - button:
+                              id: ms_sleep_opt_0
+                              width: 38
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              border_width: 1
+                              border_side: [RIGHT]
+                              border_color: ms_c_line
+                              on_click:
+                                - script.execute:
+                                    id: ms_set_sleep
+                                    minutes: 0
+                              widgets:
+                                - label: { id: ms_sleep_opt_0_lbl, text: "OFF", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                          - button:
+                              id: ms_sleep_opt_1
+                              width: 38
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              border_width: 1
+                              border_side: [RIGHT]
+                              border_color: ms_c_line
+                              on_click:
+                                - script.execute:
+                                    id: ms_set_sleep
+                                    minutes: 15
+                              widgets:
+                                - label: { id: ms_sleep_opt_1_lbl, text: "15", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                          - button:
+                              id: ms_sleep_opt_2
+                              width: 38
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              border_width: 1
+                              border_side: [RIGHT]
+                              border_color: ms_c_line
+                              on_click:
+                                - script.execute:
+                                    id: ms_set_sleep
+                                    minutes: 30
+                              widgets:
+                                - label: { id: ms_sleep_opt_2_lbl, text: "30", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                          - button:
+                              id: ms_sleep_opt_3
+                              width: 38
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              border_width: 1
+                              border_side: [RIGHT]
+                              border_color: ms_c_line
+                              on_click:
+                                - script.execute:
+                                    id: ms_set_sleep
+                                    minutes: 60
+                              widgets:
+                                - label: { id: ms_sleep_opt_3_lbl, text: "60", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                          - button:
+                              id: ms_sleep_opt_4
+                              width: 38
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              on_click:
+                                - script.execute:
+                                    id: ms_set_sleep
+                                    minutes: 90
+                              widgets:
+                                - label: { id: ms_sleep_opt_4_lbl, text: "90", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+              # Clock screen after (tap to cycle)
+              - button:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  on_click:
+                    - lambda: |-
+                        static const int options[] = {1, 2, 5, 10, 0};
+                        int next = 2;
+                        for (int i = 0; i < 5; i++)
+                          if (options[i] == id(ms_clock_after)) { next = options[(i + 1) % 5]; break; }
+                        id(ms_clock_after) = next;
+                        id(ms_last_touch) = millis();
+                    - script.execute: ms_clock_setting_render
+                  widgets:
+                    - label: { text: "Clock screen after", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                    - label: { id: ms_set_clock, text: "2 MIN >", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+              # Dim at night: ON | OFF (D30)
+              - obj:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  widgets:
+                    - label: { text: "Dim at night", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                    - obj:
+                        width: SIZE_CONTENT
+                        height: 30
+                        styles: ms_st_box
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          pad_column: 0
+                          pad_row: 0
+                        widgets:
+                          - button:
+                              id: ms_dim_opt_0
+                              width: 44
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              border_width: 1
+                              border_side: [RIGHT]
+                              border_color: ms_c_line
+                              on_click:
+                                - lambda: id(ms_dim_night) = true;
+                                - script.execute: ms_dim_render
+                                - script.execute: ms_apply_backlight
+                              widgets:
+                                - label: { id: ms_dim_opt_0_lbl, text: "ON", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                          - button:
+                              id: ms_dim_opt_1
+                              width: 44
+                              height: 100%
+                              bg_color: ms_c_bg
+                              bg_opa: COVER
+                              on_click:
+                                - lambda: id(ms_dim_night) = false;
+                                - script.execute: ms_dim_render
+                                - script.execute: ms_apply_backlight
+                              widgets:
+                                - label: { id: ms_dim_opt_1_lbl, text: "OFF", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+              # Night hours (set in Home Assistant: panel Reconfigure, D31)
+              - obj:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  widgets:
+                    - label: { text: "Night hours", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                    - label: { id: ms_set_night, text: "22:00 - 07:00", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+              # Output (opens the speaker list)
+              - button:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  on_click:
+                    - script.execute: ms_show_output
+                  widgets:
+                    - label: { text: "Output", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
+                    - label:
+                        id: ms_set_output
+                        text: "NONE >"
+                        width: 10
+                        flex_grow: 1
+                        long_mode: DOT
+                        height: 15  # one line, so DOT truncates instead of wrapping
+                        text_align: RIGHT
+                        text_font: ms_mono12
+                        text_color: ms_c_dim2
+                        text_letter_space: 1
+              # Default speaker (set in Home Assistant: panel Reconfigure)
+              - obj:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  widgets:
+                    - label: { text: "Default speaker", width: 150, text_font: ms_sans16, text_color: ms_c_fg }
+                    - label:
+                        id: ms_set_default
+                        text: "-"
+                        width: 10
+                        flex_grow: 1
+                        long_mode: DOT
+                        height: 15  # one line, so DOT truncates instead of wrapping
+                        text_align: RIGHT
+                        text_font: ms_mono12
+                        text_color: ms_c_dim2
+                        text_letter_space: 1
+              # Music source (Music Assistant arrives in Phase 8)
+              - obj:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP]
+                  border_color: ms_c_line
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  widgets:
+                    - label: { text: "Music source", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                    - label: { text: "SPOTIFY", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+              # About
+              - obj:
+                  width: 100%
+                  height: 50
+                  border_width: 1
+                  border_side: [TOP, BOTTOM]
+                  border_color: ms_c_line
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 14
+                    pad_row: 0
+                  widgets:
+                    - label: { text: "About", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                    - label: { id: ms_set_version, text: "-", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+
+    # ---------------- OUTPUT (speaker list, from SETUP > Output or the speaker chip) ----------------
+    - id: ms_page_output
+      bg_color: ms_c_bg
+      bg_opa: COVER
+      scrollable: false
+      widgets:
+        - obj:
+            width: 480
+            height: 415
+            align: TOP_MID
+            pad_top: 12
+            pad_left: 18
+            pad_right: 18
+            pad_bottom: 14
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+              pad_row: 0
+              pad_column: 0
+            widgets:
+              - obj:
+                  width: 100%
+                  height: 44
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 12
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        height: 40
+                        width: SIZE_CONTENT
+                        pad_left: 12
+                        pad_right: 12
+                        styles: ms_st_box
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 6
+                          pad_row: 0
+                        on_click:
+                          - script.execute:
+                              id: ms_nav
+                              screen: 2
+                        widgets:
+                          - image: { src: ms_ic_back, styles: ms_st_icon }
+                          - label: { text: "DONE", text_font: ms_mono12, text_color: ms_c_fg, text_letter_space: 1 }
+                    - label: { text: "OUTPUT", text_font: ms_mono12, text_color: ms_c_fg, text_letter_space: 1 }
+              - label:
+                  text: "Tap a speaker to play there"
+                  width: 100%
+                  height: 28
+                  pad_top: 6
+                  border_width: 1
+                  border_side: [BOTTOM]
+                  border_color: ms_c_line
+                  text_font: ms_mono12
+                  text_color: ms_c_dim
+              - label:
+                  id: ms_devices_empty
+                  text: "No speakers found. Open Spotify on a speaker, phone or computer."
+                  width: 100%
+                  long_mode: WRAP
+                  pad_top: 14
+                  text_font: ms_sans14
+                  text_color: ms_c_dim
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 1 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 2 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 3 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 4 } }
+              - button: !include { file: widgets/device_row.yaml, vars: { n: 5 } }
 
     # ---------------- UP NEXT (from QUEUE on PLAYING) ----------------
     - id: ms_page_queue
@@ -2563,6 +3137,15 @@ lvgl:
             height: 1
             bg_color: ms_c_idle_line
             bg_opa: COVER
+        - label:
+            id: ms_idle_sleep
+            hidden: true
+            align: TOP_MID
+            y: 292
+            text: ""
+            text_font: ms_mono12
+            text_color: ms_c_accent_dim
+            text_letter_space: 1
             clickable: false
         # Mini player
         - obj:

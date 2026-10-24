@@ -28,6 +28,10 @@ SUBENTRY_PANEL = "panel"
 CONF_DEVICE_ID = "device_id"
 CONF_ART_BASE_URL = "art_base_url"
 CONF_DEFAULT_DEVICE = "default_device"
+CONF_NIGHT_START = "night_start"
+CONF_NIGHT_END = "night_end"
+DEFAULT_NIGHT_START = "22:00:00"  # D31
+DEFAULT_NIGHT_END = "07:00:00"
 
 # Panel protocol (docs/panel-protocol.md)
 EVENT_PANEL_INPUT = "esphome.musicspot_input"
