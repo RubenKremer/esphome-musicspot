@@ -1,8 +1,8 @@
 """Sleep timer (D29): fade the volume over the last 5 minutes, pause, recover later.
 
 Runs in the integration (not on the panel) so a panel reboot doesn't lose it.
-Recovery: one hour after the timer ended the volume is set to 1/16 if it is night,
-otherwise to the original volume capped at 3/16.
+The fade starts from the volume at the moment the fade begins. Recovery: one hour after the
+timer ended the volume is set to 1/16 if it is night, otherwise to that volume capped at 3/16.
 """
 
 from __future__ import annotations
@@ -73,8 +73,7 @@ class SleepTimer:
         self._cancel_recovery()
         self.minutes = minutes
         self._ends_at = time.monotonic() + minutes * 60
-        device = (self._coordinator.data or {}).get("device") or {}
-        self._original_volume = device.get("volume_percent")
+        self._original_volume = None  # taken when the fade starts
         self._unsub_tick = async_track_time_interval(self._hass, self._async_tick, TICK)
         LOGGER.debug("Sleep timer started: %s min", minutes)
         await self._on_change()
@@ -105,9 +104,14 @@ class SleepTimer:
         if remaining <= 0:
             await self._async_finish()
             return
-        if remaining <= FADE_S and self._original_volume:
-            self._fading = True
-            await self._async_set_volume(round(self._original_volume * remaining / FADE_S))
+        if remaining <= FADE_S:
+            if not self._fading:
+                # Fade from the volume at this moment (it may have changed since the start)
+                self._fading = True
+                device = (self._coordinator.data or {}).get("device") or {}
+                self._original_volume = device.get("volume_percent")
+            if self._original_volume:
+                await self._async_set_volume(round(self._original_volume * remaining / FADE_S))
         await self._on_change()  # keep the panel's countdown in sync
 
     async def _async_finish(self) -> None:
