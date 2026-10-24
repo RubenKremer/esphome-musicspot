@@ -223,8 +223,11 @@ script:
       - delay: 1s
       - if:
           condition:
-            api.connected:
-              state_subscription_only: true
+            or:
+              - api.connected:
+                  state_subscription_only: true
+              # The splash's HOME ASSISTANT API line already shows this
+              - lambda: return !id(ms_splash_done);
           then:
             - lvgl.widget.hide: ms_offline
           else:
@@ -547,6 +550,7 @@ script:
       - delay: 1s
       - lambda: id(ms_splash_done) = true;
       - lvgl.widget.show: ms_navbar
+      - script.execute: ms_update_offline
       - script.execute:
           id: ms_nav
           screen: 0
@@ -1162,6 +1166,7 @@ lvgl:
       # Shown while Home Assistant is not connected
       - label:
           id: ms_offline
+          hidden: true
           align: TOP_MID
           y: 4
           text: "NO HOME ASSISTANT"
