@@ -18,8 +18,8 @@ custom_components/musicspot/     Home Assistant integration (HACS)
 hacs.json
 esphome/                         ESPHome firmware (thin client)
   musicspot.yaml                 device config (board-specific)
-  packages/                      reusable pieces (screens, actions);
-                                 users pull via github://RubenKremer/esphome-musicspot/esphome/packages/...
+  musicspot-packages/            reusable pieces (board, screens, actions);
+                                 users pull via github://RubenKremer/esphome-musicspot/esphome/musicspot-packages/...
 README.md  PLAN.md  CLAUDE.md
 ```
 
@@ -66,7 +66,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 **Done when:** stable screen and touch during heavy Wi-Fi traffic.
 
-## Phase 2 — Thin-client firmware (`esphome/packages/`)
+## Phase 2 — Thin-client firmware (`esphome/musicspot-packages/`)
 - [x] P2.1 Screen navigation: Now Playing / Browse / Devices (tab bar or swipe) — verified on device via Developer Tools, 2026-10-23
 - [x] P2.2 API action `show_now_playing(title, artist, album, art_url, state, position_ms, duration_ms, volume, shuffle, repeat)` — verified on device with real Spotify data, 2026-10-23
 - [x] P2.3 Now Playing screen: 220×220 art via `online_image` (JPEG, placeholder + `on_error`), text, controls — verified on device with real Spotify data, 2026-10-23
@@ -130,10 +130,10 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.7 Design mockups first: clickable 480×480 HTML mockups of all screens, with the panel's colour/font limits; iterate there, not by reflashing
       (baseline of the current UI: `design/mockups/current-ui.html`, 2026-10-23)
       (design C mockup: `design/mockups/design-c.html` (Now Playing, Library, Albums))
-- [x] P7.8 Theme package `packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles — verified on device: theme.yaml drives all screens, 2026-10-24
-      (draft: `esphome/packages/musicspot/theme.yaml`, not included yet)
+- [x] P7.8 Theme package `musicspot-packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles — verified on device: theme.yaml drives all screens, 2026-10-24
+      (draft: `esphome/musicspot-packages/musicspot/theme.yaml`, not included yet)
 - [x] P7.9 Material Design Icons font replaces LVGL built-in symbols (brightness sun, device-type icons, transport controls) — verified on device: design C SVG icons (D28), 2026-10-24
-      (superseded by D28: design SVG icons in `esphome/packages/musicspot/icons/`)
+      (superseded by D28: design SVG icons in `esphome/musicspot-packages/musicspot/icons/`)
 - [ ] P7.10 Design system: type scale, 8 px grid, dark palette with one accent, pressed/disabled states, wall-panel touch targets; Now Playing layout with more room for art
       (direction chosen: design set C, D18–D22)
 - [ ] P7.11 Details: page transitions, loading skeleton instead of "Waiting for Home Assistant", scrolling long titles, brightness slider synced with the backlight
@@ -187,7 +187,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D25 | Search: debounce typing (~600 ms) before calling Spotify; query sent as the event `arg` | Proposed | Protects the shared dev-mode quota; keystrokes stay on the device |
 | D26 | Library lists get 40 px covers (deviation from design C); Albums tab is a 4×2 cover grid | Agreed (Ruben, 2026-10-23) | Costs up to 6–8 small image downloads per page |
 | D27 | No repeat control on the panel | Agreed (Ruben, 2026-10-23) | Design C has no place for it; use the Spotify app |
-| D28 | Icons are design C's own SVGs (`esphome/packages/musicspot/icons/`), rendered as recoloured ESPHome images, instead of an MDI font | Proposed | Pixel-faithful to the design; only ~15 icons needed |
+| D28 | Icons are design C's own SVGs (`esphome/musicspot-packages/musicspot/icons/`), rendered as recoloured ESPHome images, instead of an MDI font | Proposed | Pixel-faithful to the design; only ~15 icons needed |
 | D29 | Sleep mode = sleep timer: choose 15 / 30 / 60 / 90 min in Settings. Activating it shows the idle clock at 10 % brightness (screen stays on) with a small countdown of the remaining sleep time; a touch wakes the panel as usual without cancelling, and it returns to the dim clock after the normal idle timeout. Over the last 5 min the volume fades down from its level at that moment, then playback pauses. Volume recovery: stay faded for 1 hour after the timer ended, then set 1/16 (one segment) if it is night (D31), otherwise the original volume capped at 3/16 | Agreed (Ruben, 2026-10-24) | Timer, fade and recovery run in the integration so they survive a panel reboot |
 | D30 | Dim at night (Settings toggle): during night (D31) the backlight drops to a low default level; touch still works, normal brightness outside night | Agreed (Ruben, 2026-10-24) | From design C Settings |
 | D31 | "Night" = fixed hours, default 22:00–07:00, adjustable in Settings | Agreed (Ruben, 2026-10-24) | Used by dim at night and the sleep-timer volume recovery |

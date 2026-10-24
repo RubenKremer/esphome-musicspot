@@ -1,6 +1,6 @@
 # Panel protocol
 
-The contract between the MusicSpot firmware (`esphome/packages/musicspot/`) and the
+The contract between the MusicSpot firmware (`esphome/musicspot-packages/musicspot/`) and the
 Home Assistant integration. The panel is a thin client: it renders what it is told and reports touches.
 
 ## Inbound: API actions (integration → panel)

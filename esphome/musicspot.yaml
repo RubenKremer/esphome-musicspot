@@ -14,11 +14,11 @@ esphome:
   min_version: 2026.10.0
   project:
     name: "rubenkremer.musicspot"
-    version: "0.1.0"
+    version: "${musicspot_version}"  # defined in musicspot-packages/musicspot/core.yaml
 
 packages:
-  hardware: !include packages/hardware/guition-esp32-s3-4848s040.yaml
-  musicspot: !include packages/musicspot/core.yaml
+  hardware: !include musicspot-packages/hardware/guition-esp32-s3-4848s040.yaml
+  musicspot: !include musicspot-packages/musicspot/core.yaml
 
 logger:
   level: INFO
