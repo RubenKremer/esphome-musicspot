@@ -2,17 +2,36 @@
 
 # MusicSpot
 
-> 🚧 **Work in progress** — not usable yet. See [PLAN.md](PLAN.md) for the roadmap and progress.
+> 🚧 **Pre-release** — working on the author's panel, heading for 1.0. See [PLAN.md](PLAN.md) for progress.
 
 A touch-panel music controller for Home Assistant: ESPHome + LVGL firmware for the
 **Guition ESP32-4848S040** (4" 480×480 square display that fits a standard wall box),
 with a HACS integration that connects each panel to a Spotify account.
 
-## Planned features
-- Now playing with album art, playback and volume controls
-- Browse your playlists, Liked Songs and recently played
-- Long-press a track to add it to the queue
-- Pick which Spotify Connect device plays
+<p align="center"><i>Skip the apps, not the songs.</i></p>
+
+## Screens
+
+<table>
+  <tr>
+    <td align="center"><img src="design/cyber-design/screenshots/now-playing.png" alt="Now playing" width="240"><br><sub>Now playing</sub></td>
+    <td align="center"><img src="design/cyber-design/screenshots/albums.png" alt="Library: albums" width="240"><br><sub>Library: albums</sub></td>
+    <td align="center"><img src="design/cyber-design/screenshots/idle-clock.png" alt="Idle clock" width="240"><br><sub>Idle clock</sub></td>
+  </tr>
+</table>
+
+<sub>Design renders; the firmware follows them closely (see <a href="design/">design/</a>). Photos of the panel follow with the 1.0 release.</sub>
+
+## Features
+- **Now playing:** album art, title and artist, track time and progress (tap to seek), play/pause,
+  previous/next, shuffle, ♥ like, 16-step volume; controls react instantly
+- **Library:** playlists (with Liked Songs), albums as a cover grid, followed artists, recently played;
+  tap to play in context, long-press to add to the queue
+- **Up next:** the current queue
+- **Search** with an on-screen keyboard: tracks, albums, artists and playlists
+- **Output:** pick the Spotify Connect speaker
+- **Setup:** brightness, sleep timer (15–90 min with a volume fade), dim at night, clock-screen timeout
+- **Idle clock** after a few minutes, and a boot splash that shows startup progress
 - Several panels, each linked to its own Spotify account
 
 ## How it works

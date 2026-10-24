@@ -139,7 +139,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
       (direction chosen: design set C, D18–D22)
 - [ ] P7.11 Details: page transitions, loading skeleton instead of "Waiting for Home Assistant", scrolling long titles, brightness slider synced with the backlight
 - [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
-- [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
+- [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5) — design renders in the README since 2026-10-24; replace with panel photos or captures for 1.0
 - [ ] P7.14 Decide on the debug sensors (reset reason, heap, PSRAM): keep as diagnostics or move to an optional package before release
 - [x] P7.16 Boot splash (D33) — verified on device 2026-10-24 (wordmark fix, 5 s hold, firmware version)
 - [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep timer** (D29) — built 2026-10-24 (scrollable SETUP list, Output screen, sleep timer with fade/recovery, dim at night, clock timeout); not yet verified
