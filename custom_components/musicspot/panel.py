@@ -648,7 +648,7 @@ class MusicSpotPanel:
             return
         self._liked[uri] = not liked
         self._browser.invalidate_liked()
-        await self.async_toast("Added to Liked Songs" if not liked else "Removed from Liked Songs")
+        # No toast: the ♥ on the panel already shows the new state (D34)
         await self.async_push_now_playing(force=True)
 
     async def _async_play(self, **kwargs: Any) -> None:
