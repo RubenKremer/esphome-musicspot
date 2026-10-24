@@ -10,6 +10,10 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
+    advanced:
+      # The main loop also runs LVGL, which lays out and draws nested screens recursively.
+      # 8 KB (default) overflowed on the paged SETUP screen (crash 2026-10-24).
+      loop_task_stack_size: 16384
     sdkconfig_options:
       COMPILER_OPTIMIZATION_SIZE: y
       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
