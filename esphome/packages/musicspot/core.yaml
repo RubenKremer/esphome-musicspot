@@ -582,6 +582,7 @@ script:
   - id: ms_go_idle
     then:
       - lambda: id(ms_idle) = true;
+      - lvgl.widget.hide: ms_busy
       - script.execute: ms_clock_render
       - lvgl.widget.hide: ms_navbar
       - lvgl.page.show: ms_page_idle
@@ -889,9 +890,10 @@ api:
       variables:
         busy: bool
       then:
+        # Background work while the idle clock or splash is up needs no spinner
         - if:
             condition:
-              lambda: return busy;
+              lambda: return busy && !id(ms_idle) && id(ms_splash_done);
             then:
               - lvgl.widget.show: ms_busy
             else:
