@@ -40,6 +40,10 @@ output:
     pin: GPIO38
     id: gpio_backlight_pwm
     frequency: 100Hz
+    # Below ~1.5 % duty the backlight switches off. With the light's 2.8 gamma that was
+    # 22 % brightness; this maps 1-100 % onto 1.5-100 % duty so every level stays visible.
+    min_power: 0.015
+    zero_means_zero: true
 
 light:
   - platform: monochromatic

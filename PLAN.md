@@ -187,7 +187,10 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D26 | Library lists get 40 px covers (deviation from design C); Albums tab is a 4×2 cover grid | Agreed (Ruben, 2026-10-23) | Costs up to 6–8 small image downloads per page |
 | D27 | No repeat control on the panel | Agreed (Ruben, 2026-10-23) | Design C has no place for it; use the Spotify app |
 | D28 | Icons are design C's own SVGs (`esphome/packages/musicspot/icons/`), rendered as recoloured ESPHome images, instead of an MDI font | Proposed | Pixel-faithful to the design; only ~15 icons needed |
-| D29 | Sleep mode = sleep timer: choose 15 / 30 / 60 / 90 min in Settings. Activating it shows the idle clock at 10 % brightness (screen stays on) with a small countdown of the remaining sleep time; a touch wakes the panel as usual without cancelling. Over the last 5 min the volume fades down, then playback pauses | Agreed (Ruben, 2026-10-24) | Timer and fade run in the integration so they survive a panel reboot. Proposed detail: restore the original volume after pausing, so the next playback isn't silent; back to 10 % clock after the normal idle timeout while the timer runs |
+| D29 | Sleep mode = sleep timer: choose 15 / 30 / 60 / 90 min in Settings. Activating it shows the idle clock at 10 % brightness (screen stays on) with a small countdown of the remaining sleep time; a touch wakes the panel as usual without cancelling, and it returns to the dim clock after the normal idle timeout. Over the last 5 min the volume fades down, then playback pauses. Volume recovery: stay faded for 1 hour after the timer ended, then set 1/16 (one segment) if it is night (D31), otherwise the original volume capped at 3/16 | Agreed (Ruben, 2026-10-24) | Timer, fade and recovery run in the integration so they survive a panel reboot |
+| D30 | Dim at night (Settings toggle): during night (D31) the backlight drops to a low default level; touch still works, normal brightness outside night | Agreed (Ruben, 2026-10-24) | From design C Settings |
+| D31 | "Night" = fixed hours, default 22:00–07:00, adjustable in Settings | Agreed (Ruben, 2026-10-24) | Used by dim at night and the sleep-timer volume recovery |
+| D32 | Backlight output `min_power: 0.015` + `zero_means_zero` | Proposed | Below ~1.5 % PWM duty the backlight is off; with gamma 2.8 that was 22 % brightness. Keeps 1–100 % all visible (panel slider and HA) |
 
 ## Findings
 
@@ -224,6 +227,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 - 2026-10-24: PSRAM malloc fix confirmed: Albums no longer reboots. Photo showed a 3-column grid (6 of 8 albums), a gap in the source selector and clipped artist lines: LVGL's default theme adds gaps between flex items unless `pad_row`/`pad_column` are set, and 4×84 + 3×10 px filled the 366 px exactly. All flex layouts now set both gaps explicitly; grid gap 8 px, tiles 132 px tall.
 - 2026-10-24: Panel feels noticeably snappier after the PSRAM malloc change (clean build): more internal RAM free, Wi-Fi/LwIP buffers in PSRAM, art over plain HTTP, images decoded one at a time.
 - 2026-10-24: Source selector (v1.1) and Albums 4×2 grid confirmed on device.
+- 2026-10-24: Backlight turns off below 22 % brightness = ~1.4 % PWM duty after the light's default 2.8 gamma; fixed with `min_power` on the LEDC output (D32).
 - 2026-10-22: Integration runs on HA 2026.10.2 (Container on Unraid, Python 3.14.6); survives restart without re-auth.
   `/me` returns `country`/`product` as null — those need the `user-read-private` scope, which MusicSpot does not request; Premium is detected via 403 instead.
 - 2026-10-22: P1.5 stress test over HTTPS (48.9 KB JPEG, resized to 200×200, every 3 s): 30 ok / 0 fail,
