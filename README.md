@@ -1,3 +1,5 @@
+<p align="center"><img src="custom_components/musicspot/brand/logo@2x.png" alt="MusicSpot" width="256"></p>
+
 # MusicSpot
 
 > 🚧 **Work in progress** — not usable yet. See [PLAN.md](PLAN.md) for the roadmap and progress.

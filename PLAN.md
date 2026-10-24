@@ -124,6 +124,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [ ] P7.4 GitHub Actions: `hassfest` + HACS validation; ESPHome config compile check
 - [ ] P7.5 README: setup (Spotify app, HACS install, flashing), limits, screenshots
 - [ ] P7.6 First tagged release (after the UI polish block below)
+- [ ] P7.17 Integration icon and logo (`custom_components/musicspot/brand/`, HA 2026.3+ local brand images) — added 2026-10-24; verify in HA. HACS' own dashboard doesn't show local icons yet (hacs/integration#5171)
 
 ### UI polish (do before P7.6)
 The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol stay untouched.
