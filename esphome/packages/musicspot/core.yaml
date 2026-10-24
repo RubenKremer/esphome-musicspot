@@ -564,11 +564,11 @@ script:
       - script.execute: ms_spl_seg_23_set
       - script.execute: ms_spl_seg_24_set
 
-  # READY: keep the finished splash up for 9 s, then go to PLAYING
+  # READY: keep the finished splash up for 5 s, then go to PLAYING
   - id: ms_splash_finish
     mode: single
     then:
-      - delay: 9s
+      - delay: 5s
       - script.execute: ms_splash_leave
 
   # Leave the splash now (end of the wait, or a tap)
