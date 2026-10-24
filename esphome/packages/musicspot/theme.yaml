@@ -89,6 +89,11 @@ font:
     size: 124
     bpp: 4
     glyphs: "0123456789:"
+  - file: { type: gfonts, family: IBM Plex Mono, weight: 400 }
+    id: ms_logo40        # splash wordmark
+    size: 40
+    bpp: 4
+    glyphs: "MUSICPOT"
 
 # -------------------------------------------
 # Icons: the design's own SVGs, white on transparent, recoloured per state in LVGL

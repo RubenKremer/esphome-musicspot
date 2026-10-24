@@ -140,6 +140,7 @@ The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol 
 - [ ] P7.12 Performance budget: check shadows/gradients/transparency against frame rate on the real panel
 - [ ] P7.13 Screenshots of the final UI for the README (feeds P7.5)
 - [ ] P7.14 Decide on the debug sensors (reset reason, heap, PSRAM): keep as diagnostics or move to an optional package before release
+- [ ] P7.16 Boot splash (D33) — built 2026-10-24, not yet verified
 - [ ] P7.15 Settings screen (design C): brightness, clock-screen timeout, dim at night, music source, default speaker, about — plus a **sleep timer** (D29)
 
 ## Phase 8 — Optional: Music Assistant backend (later)
@@ -191,6 +192,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D30 | Dim at night (Settings toggle): during night (D31) the backlight drops to a low default level; touch still works, normal brightness outside night | Agreed (Ruben, 2026-10-24) | From design C Settings |
 | D31 | "Night" = fixed hours, default 22:00–07:00, adjustable in Settings | Agreed (Ruben, 2026-10-24) | Used by dim at night and the sleep-timer volume recovery |
 | D32 | Backlight output `min_power: 0.015` + `zero_means_zero` | Proposed | Below ~1.5 % PWM duty the backlight is off; with gamma 2.8 that was 22 % brightness. Keeps 1–100 % all visible (panel slider and HA) |
+| D33 | Boot splash (design C): status lines follow real milestones — ESPHome core, Wi-Fi, Home Assistant API (state subscription), SPOTIFY DEVICES (first device list, `N FOUND`; design said MEDIA PLAYERS), READY (first Now Playing) — then PLAYING after 1 s. Tap skips. Nav bar and idle timeout wait for it | Proposed | Replaces the unhelpful "Waiting for Home Assistant" start; shows where startup hangs. Leader lines solid (LVGL has no dotted borders) |
 
 ## Findings
 

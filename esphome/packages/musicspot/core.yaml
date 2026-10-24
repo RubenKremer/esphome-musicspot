@@ -27,6 +27,30 @@ packages:
   queue_row_3: !include { file: queue_row.yaml, vars: { n: 3, idx: 2 } }
   queue_row_4: !include { file: queue_row.yaml, vars: { n: 4, idx: 3 } }
   queue_row_5: !include { file: queue_row.yaml, vars: { n: 5, idx: 4 } }
+  spl_seg_1: !include { file: segment.yaml, vars: { group: spl, n: 1, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_2: !include { file: segment.yaml, vars: { group: spl, n: 2, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_3: !include { file: segment.yaml, vars: { group: spl, n: 3, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_4: !include { file: segment.yaml, vars: { group: spl, n: 4, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_5: !include { file: segment.yaml, vars: { group: spl, n: 5, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_6: !include { file: segment.yaml, vars: { group: spl, n: 6, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_7: !include { file: segment.yaml, vars: { group: spl, n: 7, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_8: !include { file: segment.yaml, vars: { group: spl, n: 8, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_9: !include { file: segment.yaml, vars: { group: spl, n: 9, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_10: !include { file: segment.yaml, vars: { group: spl, n: 10, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_11: !include { file: segment.yaml, vars: { group: spl, n: 11, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_12: !include { file: segment.yaml, vars: { group: spl, n: 12, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_13: !include { file: segment.yaml, vars: { group: spl, n: 13, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_14: !include { file: segment.yaml, vars: { group: spl, n: 14, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_15: !include { file: segment.yaml, vars: { group: spl, n: 15, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_16: !include { file: segment.yaml, vars: { group: spl, n: 16, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_17: !include { file: segment.yaml, vars: { group: spl, n: 17, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_18: !include { file: segment.yaml, vars: { group: spl, n: 18, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_19: !include { file: segment.yaml, vars: { group: spl, n: 19, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_20: !include { file: segment.yaml, vars: { group: spl, n: 20, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_21: !include { file: segment.yaml, vars: { group: spl, n: 21, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_22: !include { file: segment.yaml, vars: { group: spl, n: 22, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_23: !include { file: segment.yaml, vars: { group: spl, n: 23, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
+  spl_seg_24: !include { file: segment.yaml, vars: { group: spl, n: 24, count: 24, value: ms_splash_pct, color_on: "0xFF6A1A" } }
   device_row_1: !include { file: device_row.yaml, vars: { n: 1, idx: 0 } }
   device_row_2: !include { file: device_row.yaml, vars: { n: 2, idx: 1 } }
   device_row_3: !include { file: device_row.yaml, vars: { n: 3, idx: 2 } }
@@ -90,6 +114,13 @@ globals:
   - { id: ms_active_device, type: int, initial_value: "-1" }
   - { id: ms_awake, type: bool, initial_value: "true" }
   - { id: ms_idle, type: bool, initial_value: "false" }
+  # Boot splash
+  - { id: ms_splash_done, type: bool, initial_value: "false" }
+  - { id: ms_splash_step, type: int, initial_value: "-1" }
+  - { id: ms_splash_seg, type: int, initial_value: "0" }
+  - { id: ms_splash_pct, type: int, initial_value: "0" }
+  - { id: ms_splash_devices, type: int, initial_value: "-1" }
+  - { id: ms_np_received, type: bool, initial_value: "false" }
 
 http_request:
   verify_ssl: false
@@ -404,6 +435,122 @@ script:
       - script.execute: ms_q_row_4_set
       - script.execute: ms_q_row_5_set
 
+  # Boot splash: each line reflects a real milestone; the bar fills towards it
+  - id: ms_splash_render
+    then:
+      - lvgl.label.update:
+          id: ms_spl_0_status
+          text: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 0) return std::string("OK");
+            return std::string(step == 0 ? "..." : "--");
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 0) return lv_color_hex(0xEDEDED);
+            return step == 0 ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_0_label
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            return step >= 0 ? lv_color_hex(0xA3A3A3) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_1_status
+          text: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 1) return std::string("OK");
+            return std::string(step == 1 ? "..." : "--");
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 1) return lv_color_hex(0xEDEDED);
+            return step == 1 ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_1_label
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            return step >= 1 ? lv_color_hex(0xA3A3A3) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_2_status
+          text: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 2) return std::string("OK");
+            return std::string(step == 2 ? "..." : "--");
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 2) return lv_color_hex(0xEDEDED);
+            return step == 2 ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_2_label
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            return step >= 2 ? lv_color_hex(0xA3A3A3) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_3_status
+          text: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 3) return str_sprintf("%d FOUND", id(ms_splash_devices));
+            return std::string(step == 3 ? "..." : "--");
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 3) return lv_color_hex(0xEDEDED);
+            return step == 3 ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_3_label
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            return step >= 3 ? lv_color_hex(0xA3A3A3) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_4_status
+          text: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 4) return std::string("OK");
+            return std::string(step == 4 ? "..." : "--");
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            if (step > 4) return lv_color_hex(0xFF6A1A);
+            return step == 4 ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x4A4A4A);
+      - lvgl.label.update:
+          id: ms_spl_4_label
+          text_color: !lambda |-
+            int step = id(ms_splash_step);
+            return step >= 4 ? lv_color_hex(0xFF6A1A) : lv_color_hex(0x4A4A4A);
+
+  - id: ms_splash_bar
+    then:
+      - script.execute: ms_spl_seg_1_set
+      - script.execute: ms_spl_seg_2_set
+      - script.execute: ms_spl_seg_3_set
+      - script.execute: ms_spl_seg_4_set
+      - script.execute: ms_spl_seg_5_set
+      - script.execute: ms_spl_seg_6_set
+      - script.execute: ms_spl_seg_7_set
+      - script.execute: ms_spl_seg_8_set
+      - script.execute: ms_spl_seg_9_set
+      - script.execute: ms_spl_seg_10_set
+      - script.execute: ms_spl_seg_11_set
+      - script.execute: ms_spl_seg_12_set
+      - script.execute: ms_spl_seg_13_set
+      - script.execute: ms_spl_seg_14_set
+      - script.execute: ms_spl_seg_15_set
+      - script.execute: ms_spl_seg_16_set
+      - script.execute: ms_spl_seg_17_set
+      - script.execute: ms_spl_seg_18_set
+      - script.execute: ms_spl_seg_19_set
+      - script.execute: ms_spl_seg_20_set
+      - script.execute: ms_spl_seg_21_set
+      - script.execute: ms_spl_seg_22_set
+      - script.execute: ms_spl_seg_23_set
+      - script.execute: ms_spl_seg_24_set
+
+  - id: ms_splash_finish
+    mode: single
+    then:
+      - delay: 1s
+      - lambda: id(ms_splash_done) = true;
+      - lvgl.widget.show: ms_navbar
+      - script.execute:
+          id: ms_nav
+          screen: 0
+
   - id: ms_refresh_device_rows
     then:
       - script.execute: ms_device_row_1_set
@@ -509,6 +656,7 @@ api:
         liked: bool
       then:
         - lambda: |-
+            id(ms_np_received) = true;
             id(ms_playing) = (state == "playing");
             id(ms_pos_ms) = position_ms;
             id(ms_dur_ms) = duration_ms;
@@ -727,6 +875,7 @@ api:
         - lambda: |-
             id(ms_devices) = names;
             id(ms_active_device) = active;
+            id(ms_splash_devices) = names.size();
         - if:
             condition:
               lambda: return names.empty();
@@ -775,6 +924,32 @@ api:
 # Timers
 # -------------------------------------------
 interval:
+  # Boot splash: advance milestones and animate the bar (150 ms per segment)
+  - interval: 150ms
+    then:
+      - if:
+          condition:
+            lambda: return !id(ms_splash_done);
+          then:
+            - lambda: |-
+                int step = 1;  // ESPHome core is up once this runs
+                if (step == 1 && wifi::global_wifi_component->is_connected()) step = 2;
+                if (step == 2 && api::global_api_server->is_connected_with_state_subscription()) step = 3;
+                if (step == 3 && id(ms_splash_devices) >= 0) step = 4;
+                if (step == 4 && id(ms_np_received)) step = 5;
+                static const int target[] = {0, 5, 11, 17, 22, 24};
+                if (id(ms_splash_seg) < target[step]) id(ms_splash_seg)++;
+                id(ms_splash_pct) = id(ms_splash_seg) * 100 / 24;
+                if (step != id(ms_splash_step)) {
+                  id(ms_splash_step) = step;
+                  id(ms_splash_render).execute();
+                }
+            - script.execute: ms_splash_bar
+            - if:
+                condition:
+                  lambda: return id(ms_splash_step) >= 5 && id(ms_splash_seg) >= 24;
+                then:
+                  - script.execute: ms_splash_finish
   # Safety net for the offline banner (HA can subscribe a moment after connecting)
   - interval: 10s
     then:
@@ -841,7 +1016,7 @@ lvgl:
     then:
       - if:
           condition:
-            lambda: return !id(ms_idle);
+            lambda: return !id(ms_idle) && id(ms_splash_done);
           then:
             - script.execute: { id: ms_set_awake, awake: false }
             - script.execute: ms_go_idle
@@ -851,6 +1026,7 @@ lvgl:
       # Bottom navigation: PLAYING / LIBRARY / SETUP with a 3 px accent bar on the active tab
       - obj:
           id: ms_navbar
+          hidden: true  # shown when the boot splash finishes
           align: BOTTOM_MID
           width: 480
           height: 64
@@ -995,6 +1171,219 @@ lvgl:
           text_letter_space: 1
 
   pages:
+    # ---------------- BOOT SPLASH (first page; tap to skip) ----------------
+    - id: ms_page_splash
+      bg_color: ms_c_bg
+      bg_opa: COVER
+      scrollable: false
+      widgets:
+        - button:
+            width: 480
+            height: 480
+            align: CENTER
+            pressed:
+              bg_opa: TRANSP
+            on_click:
+              - script.execute: ms_splash_finish
+        - obj:
+            width: 480
+            height: 480
+            pad_top: 26
+            pad_left: 32
+            pad_right: 32
+            pad_bottom: 30
+            clickable: false
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+              flex_align_cross: CENTER
+              pad_row: 0
+              pad_column: 0
+            widgets:
+              - obj:
+                  width: 100%
+                  height: 16
+                  clickable: false
+                  widgets:
+                    - label: { text: "ESPHOME", align: LEFT_MID, text_font: ms_mono12, text_color: ms_c_idle_dim, text_letter_space: 1 }
+                    - label: { text: "V0.5", align: RIGHT_MID, text_font: ms_mono12, text_color: ms_c_idle_dim, text_letter_space: 1 }
+              - obj: { width: 100%, height: 10, flex_grow: 1, clickable: false }
+              # Logo: 3x3 squares, orange centre
+              - obj:
+                  width: 54
+                  height: 54
+                  clickable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW_WRAP
+                    pad_row: 6
+                    pad_column: 6
+                  widgets:
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_accent, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+                    - obj: { width: 14, height: 14, bg_color: ms_c_line, bg_opa: COVER }
+              - obj:
+                  width: 100%
+                  height: 48
+                  pad_top: 22
+                  clickable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_main: CENTER
+                    pad_row: 0
+                    pad_column: 0
+                  widgets:
+                    - label: { text: "MUSIC", text_font: ms_logo40, text_color: ms_c_fg, text_letter_space: 2 }
+                    - label: { text: "SPOT", text_font: ms_logo40, text_color: ms_c_accent, text_letter_space: 2 }
+              - label:
+                  text: "TACTILE CONTROL FOR HOME ASSISTANT"
+                  width: 100%
+                  pad_top: 12
+                  text_align: CENTER
+                  text_font: ms_mono12
+                  text_color: ms_c_dim
+                  text_letter_space: 1
+              - obj: { width: 100%, height: 10, flex_grow: 1, clickable: false }
+              # Status lines
+              - obj:
+                  width: 100%
+                  height: SIZE_CONTENT
+                  clickable: false
+                  layout:
+                    type: flex
+                    flex_flow: COLUMN
+                    pad_row: 6
+                    pad_column: 0
+                  widgets:
+                    - obj:
+                        width: 100%
+                        height: 16
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 8
+                          pad_row: 0
+                        widgets:
+                          - label: { text: ">", text_font: ms_mono12, text_color: 0x4A4A4A }
+                          - label: { id: ms_spl_0_label, text: "ESPHOME CORE", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                          # leader line (design: dotted; LVGL borders are solid)
+                          - obj: { width: 10, flex_grow: 1, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                          - label: { id: ms_spl_0_status, text: "--", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                    - obj:
+                        width: 100%
+                        height: 16
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 8
+                          pad_row: 0
+                        widgets:
+                          - label: { text: ">", text_font: ms_mono12, text_color: 0x4A4A4A }
+                          - label: { id: ms_spl_1_label, text: "WI-FI", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                          # leader line (design: dotted; LVGL borders are solid)
+                          - obj: { width: 10, flex_grow: 1, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                          - label: { id: ms_spl_1_status, text: "--", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                    - obj:
+                        width: 100%
+                        height: 16
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 8
+                          pad_row: 0
+                        widgets:
+                          - label: { text: ">", text_font: ms_mono12, text_color: 0x4A4A4A }
+                          - label: { id: ms_spl_2_label, text: "HOME ASSISTANT API", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                          # leader line (design: dotted; LVGL borders are solid)
+                          - obj: { width: 10, flex_grow: 1, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                          - label: { id: ms_spl_2_status, text: "--", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                    - obj:
+                        width: 100%
+                        height: 16
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 8
+                          pad_row: 0
+                        widgets:
+                          - label: { text: ">", text_font: ms_mono12, text_color: 0x4A4A4A }
+                          - label: { id: ms_spl_3_label, text: "SPOTIFY DEVICES", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                          # leader line (design: dotted; LVGL borders are solid)
+                          - obj: { width: 10, flex_grow: 1, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                          - label: { id: ms_spl_3_status, text: "--", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                    - obj:
+                        width: 100%
+                        height: 16
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 8
+                          pad_row: 0
+                        widgets:
+                          - label: { text: ">", text_font: ms_mono12, text_color: 0x4A4A4A }
+                          - label: { id: ms_spl_4_label, text: "READY", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+                          # leader line (design: dotted; LVGL borders are solid)
+                          - obj: { width: 10, flex_grow: 1, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                          - label: { id: ms_spl_4_status, text: "--", text_font: ms_mono12, text_color: 0x4A4A4A, text_letter_space: 1 }
+              # 24-segment progress bar
+              - obj:
+                  width: 100%
+                  height: 24
+                  pad_top: 16
+                  clickable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_column: 3
+                    pad_row: 0
+                  widgets:
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 1 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 2 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 3 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 4 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 5 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 6 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 7 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 8 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 9 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 10 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 11 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 12 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 13 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 14 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 15 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 16 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 17 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 18 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 19 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 20 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 21 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 22 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 23 } }
+                    - obj: !include { file: widgets/segment.yaml, vars: { group: spl, n: 24 } }
     # ---------------- PLAYING ----------------
     - id: ms_page_now
       bg_color: ms_c_bg
