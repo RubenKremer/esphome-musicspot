@@ -979,7 +979,11 @@ interval:
             - script.execute: ms_splash_bar
             - if:
                 condition:
-                  lambda: return id(ms_splash_step) >= 5 && id(ms_splash_seg) >= 24;
+                  and:
+                    - lambda: return id(ms_splash_step) >= 5 && id(ms_splash_seg) >= 24;
+                    # Start the 5 s hold once (the ticker runs every 150 ms)
+                    - not:
+                        script.is_running: ms_splash_finish
                 then:
                   - script.execute: ms_splash_finish
   # Safety net for the offline banner (HA can subscribe a moment after connecting)
