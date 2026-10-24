@@ -1437,7 +1437,7 @@ interval:
                 text: !lambda |-
                   int32_t left = (int32_t) (id(ms_sleep_end_at) - millis()) / 1000;
                   if (left < 0) left = 0;
-                  return str_sprintf("SLEEP %d:%02d", left / 60, left % 60);
+                  return str_sprintf("SLEEP %d:%02d", (int) (left / 60), (int) (left % 60));
   # Night starts/ends: re-evaluate the backlight
   - interval: 60s
     then:
