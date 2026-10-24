@@ -54,6 +54,10 @@ light:
     # Come back on at the last brightness after a reboot (stored on the panel; saved to
     # flash within `flash_write_interval`, so a change made just before a reboot may be lost)
     restore_mode: RESTORE_AND_ON
+    # Used when nothing is saved yet (first boot, erased flash)
+    initial_state:
+      state: true
+      brightness: 70%
 
 # -------------------------------------------
 # Touchscreen GT911 (I2C)
