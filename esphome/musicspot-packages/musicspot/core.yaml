@@ -3,7 +3,7 @@
 # The device holds no Spotify logic and no Home Assistant entity IDs:
 #   inbound:  the integration calls the API actions below (esphome.<device>_show_now_playing, ...)
 #   outbound: every touch is fired as HA event `esphome.musicspot_input` {type, arg, value}
-# Protocol: docs/panel-protocol.md. Look: design/mockups/design-c.html.
+# Protocol: docs/panel-protocol.md. Look: design/mockups/design-c.html; source designs in design/cyber-design.
 # Requires the hardware package ids: my_display, my_touchscreen, display_backlight.
 
 substitutions:

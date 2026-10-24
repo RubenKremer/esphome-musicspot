@@ -129,7 +129,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 ### UI polish (do before P7.6)
 The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol stay untouched.
 - [ ] P7.7 Design mockups first: clickable 480×480 HTML mockups of all screens, with the panel's colour/font limits; iterate there, not by reflashing
-      (baseline of the current UI: `design/mockups/current-ui.html`, 2026-10-23)
+      (baseline of the current UI: `design/mockups/archive/current-ui.html`, 2026-10-23)
       (design C mockup: `design/mockups/design-c.html` (Now Playing, Library, Albums))
 - [x] P7.8 Theme package `musicspot-packages/musicspot/theme.yaml`: all colours, fonts, radii and spacing via `style_definitions` + `theme:`; screens only use named styles — verified on device: theme.yaml drives all screens, 2026-10-24
       (draft: `esphome/musicspot-packages/musicspot/theme.yaml`, not included yet)
@@ -178,7 +178,7 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 | D15 | Remember recently seen Spotify devices per account and keep them on the Devices screen | Proposed | The Web API drops idle Google Cast devices from `/me/player/devices`, so you couldn't switch back to one. Transfer to a remembered device may still fail (404); then it is forgotten and logged |
 | D16 | Playlists and albums open with a **Play all** row; tracks play inside their context (playlist/album/Liked Songs) | Proposed | Since Feb 2026 Spotify only lists items of playlists you own; Play all still works for followed playlists |
 | D17 | Firmware actions `show_toast` and `show_screen` | Proposed | Feedback for queueing (no 'play next') and jumping to Now Playing after starting playback |
-| D18 | UI polish follows Claude Design set "C" (`design/cyber-design/C · *.zip`): flat, square, hairlines, IBM Plex Sans/Mono, accent `#FF6A1A` | Agreed (Ruben, 2026-10-23: orange accent) | Reviewed Now Playing + Library 2026-10-23: fits 480×480 incl. nav, cheaper for LVGL than the current UI |
+| D18 | UI polish follows Claude Design set "C" (`design/cyber-design/exports/*.zip`): flat, square, hairlines, IBM Plex Sans/Mono, accent `#FF6A1A` | Agreed (Ruben, 2026-10-23: orange accent) | Reviewed Now Playing + Library 2026-10-23: fits 480×480 incl. nav, cheaper for LVGL than the current UI |
 | D19 | Library source switch shows SPOTIFY (selected) plus an empty, inactive placeholder segment for Music Assistant | Agreed (Ruben, 2026-10-23) | Keeps the layout for Phase 8 without a fake option |
 | D20 | Now Playing header: `TRACK nn / NN` for album context; otherwise the context name (playlist name, LIKED SONGS, artist) | Agreed (Ruben, 2026-10-23) | Spotify only has track numbers for albums; playlist name needs a cached `GET /playlists/{id}` |
 | D21 | Library tabs PLAYLISTS / ALBUMS / ARTISTS / RECENT (RADIO dropped); Liked Songs is the first playlist row | Agreed (Ruben, 2026-10-23) | Spotify removed the APIs radio would need (2024) |
