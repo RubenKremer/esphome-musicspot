@@ -114,7 +114,7 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 
 ## Phase 6 — Devices, queue, search
 - [x] P6.1 Device list push + transfer playback (implemented early in Phase 4 for P2.7; verify here) — verified on device 2026-10-23; transfer back to an idle Google Cast speaker fails (Spotify limitation, D15)
-- [ ] P6.2 Queue view (read-only, `GET /me/player/queue`) — built 2026-10-24 (design C Up next, 5 rows/page, rows not tappable); not yet verified
+- [x] P6.2 Queue view (read-only, `GET /me/player/queue`) — verified on device 2026-10-24 (design C Up next; long-press-queued tracks show up)
 - [x] P6.3 Search: LVGL keyboard → `search` input event → results as a browse page (10/page) — verified on device 2026-10-24 (design C search page, keyboard, top 3 + SHOW ALL in LIBRARY)
 
 ## Phase 7 — Polish & release
