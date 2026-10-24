@@ -1797,7 +1797,7 @@ lvgl:
                     - label: { text: "MUSIC", text_font: ms_logo40, text_color: ms_c_fg, text_letter_space: 2 }
                     - label: { text: "SPOT", text_font: ms_logo40, text_color: ms_c_accent, text_letter_space: 2 }
               - label:
-                  text: "TACTILE CONTROL FOR HOME ASSISTANT"
+                  text: "SKIP THE APPS, NOT THE SONGS"
                   width: 100%
                   pad_top: 12
                   text_align: CENTER
