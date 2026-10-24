@@ -22,7 +22,7 @@ from homeassistant.loader import async_get_integration
 
 from .api import SpotifyApiError, SpotifyNotFoundError
 from .art import ArtStore
-from .browse import GRID_SIZE, Browser, Row, _duration
+from .browse import GRID_SIZE, SEARCH_TAGS, SEARCH_TYPES, Browser, Row, _duration, search_row
 from .sleep import SleepTimer
 from .const import (
     ART_SIZE_NOW,
@@ -127,6 +127,10 @@ class MusicSpotPanel:
         self._liked_current = ""
         self._queue: list[dict[str, Any]] = []
         self._queue_page = 1
+        self._search_query = ""
+        self._search_scope = 0
+        self._search_rows: list[Row] = []
+        self._search_kinds: list[str] = []
 
     # ---- lifecycle -------------------------------------------------------
 
@@ -513,6 +517,18 @@ class MusicSpotPanel:
         elif type_ == "tab":
             self._browser.select_tab(value)
             await self.async_push_browse()
+        elif type_ == "search":
+            self._search_query = arg.strip()
+            self._search_scope = value if 0 <= value < len(SEARCH_TYPES) else 0
+            await self._async_search()
+        elif type_ == "search_tap":
+            await self._async_search_tap(value)
+        elif type_ == "search_all":
+            if self._search_query:
+                kind = SEARCH_TYPES[self._search_scope][0]
+                self._browser.open_search(self._search_query, kind)
+                await self._call("show_screen", {"screen": "browse"})
+                await self.async_push_browse()
         elif type_ == "sleep":
             if value > 0:
                 await self._sleep.async_start(value)
@@ -527,6 +543,70 @@ class MusicSpotPanel:
             await self.async_push_queue()
         else:
             LOGGER.debug("Input type %s is not handled yet", type_)
+
+    async def _async_search(self) -> None:
+        """Top 3 results across the scope's types, match highlighted (D25: debounced on the panel)."""
+        query = self._search_query
+        if not query:
+            self._search_rows, self._search_kinds = [], []
+            await self._call("show_search", {"query": "", "hits": 0, "tags": [], "texts": []})
+            return
+        types = list(SEARCH_TYPES[self._search_scope])
+        try:
+            data = await self.coordinator.api.search(query, types, 3, 0)
+        except SpotifyApiError as err:
+            LOGGER.warning("Search failed: %s", err)
+            await self.async_toast("Spotify didn't answer, try again")
+            return
+        if query != self._search_query:
+            return  # a newer query is already on its way
+        hits = 0
+        candidates: list[tuple[str, Row]] = []
+        for kind in types:
+            block = data.get(f"{kind}s") or {}
+            hits += int(block.get("total") or 0)
+            for item in block.get("items") or []:
+                row = search_row(kind, item)
+                if row:
+                    candidates.append((kind, row))
+        # Prefer names containing the query; otherwise keep Spotify's order
+        needle = query.casefold()
+        candidates.sort(key=lambda kr: needle not in kr[1].title.casefold())
+        top = candidates[:3]
+        self._search_kinds = [kind for kind, _ in top]
+        self._search_rows = [row for _, row in top]
+        await self._call(
+            "show_search",
+            {
+                "query": query,
+                "hits": min(hits, 99),
+                "tags": [SEARCH_TAGS[kind] for kind in self._search_kinds],
+                "texts": [_highlight(row.title, query, row.subtitle) for row in self._search_rows],
+            },
+        )
+
+    async def _async_search_tap(self, slot: int) -> None:
+        """Play a track, or open an album/artist/playlist in Library."""
+        if not 1 <= slot <= len(self._search_rows):
+            return
+        row = self._search_rows[slot - 1]
+        if row.open is not None:
+            self._browser.open_search(self._search_query, self._search_kinds[slot - 1])
+            self._browser.open(row.open)
+            await self._call("show_screen", {"screen": "browse"})
+            await self.async_push_browse()
+            return
+        try:
+            await self._async_play(uris=[row.uri])
+        except SpotifyNotFoundError:
+            await self.async_toast("No active speaker - pick one in Setup")
+            return
+        except SpotifyApiError as err:
+            LOGGER.warning("Could not play %s: %s", row.title, err)
+            await self.async_toast("Spotify refused to play this")
+            return
+        await self._call("show_screen", {"screen": "now"})
+        await self._async_refresh_soon()
 
     async def _async_load_queue(self) -> None:
         """Fetch the user queue (read-only; Spotify returns up to ~20 upcoming items)."""
@@ -762,3 +842,12 @@ def _minutes(value: str) -> int:
     """'22:00:00' -> minutes since midnight."""
     hours, minutes = (value.split(":") + ["0"])[:2]
     return int(hours) * 60 + int(minutes)
+
+
+def _highlight(title: str, query: str, subtitle: str) -> str:
+    """LVGL recolor markup: matched part in the accent, subtitle dim ('#' is the marker)."""
+    title, subtitle = title.replace("#", " "), subtitle.replace("#", " ")
+    i = title.casefold().find(query.casefold())
+    if i >= 0 and query:
+        title = f"{title[:i]}#FF6A1A {title[i:i + len(query)]}#{title[i + len(query):]}"
+    return f"{title}  #6E6E6E {subtitle}#" if subtitle else title

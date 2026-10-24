@@ -56,6 +56,15 @@ Values for SETUP that Home Assistant owns. Sent on hello and whenever the sleep 
 | `sleep_minutes` | int | Chosen sleep timer (15/30/60/90), `0` = off |
 | `sleep_remaining_s` | int | Seconds left; the panel counts down locally |
 
+### `show_search`
+Top 3 results for the panel's search page (D25).
+| Field | Type | Notes |
+|---|---|---|
+| `query` | string | Echo of the query; the panel ignores answers to an older query |
+| `hits` | int | Total across the searched types (max 99) |
+| `tags` | string[] | `TRK` / `ALB` / `ART` / `PLS` |
+| `texts` | string[] | LVGL recolor markup: the match as `#FF6A1A …#`, subtitle as `#6E6E6E …#` (`#` in names is replaced) |
+
 ### `show_devices`
 | Field | Type | Notes |
 |---|---|---|
@@ -92,6 +101,9 @@ Home Assistant adds the panel's `device_id`.
 | `tab` | | `0`–`3` | Library tab selected |
 | `queue_view` | | `0` | QUEUE pressed on PLAYING: send the queue |
 | `sleep` | | `15` / `30` / `60` / `90`, `0` = off | Sleep timer (D29); the panel switches to the dim clock itself |
+| `search` | query | scope `0`–`4` (ALL, TRK, ALB, ART, PLS) | Sent 600 ms after the last key press |
+| `search_tap` | | `1`–`3` | Result tapped: play a track, or open album/artist/playlist in LIBRARY |
+| `search_all` | | `0` | SHOW ALL / HITS: full results (6 per page) in LIBRARY |
 | `queue_page` | | `-1` / `1` | Up next previous / next page |
 | `page` | | `-1` / `1` | Previous / next browse page |
 | `device` | | slot `1`–`5` | Transfer playback to that device |

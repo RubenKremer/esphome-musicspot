@@ -16,6 +16,9 @@ from typing import Any
 from .api import MusicSpotApi, SpotifyForbiddenError, SpotifyNotFoundError
 
 LIST_SIZE = 6
+# Search scopes on the panel: ALL, TRK, ALB, ART, PLS (D25)
+SEARCH_TYPES = (("track", "album", "artist", "playlist"), ("track",), ("album",), ("artist",), ("playlist",))
+SEARCH_TAGS = {"track": "TRK", "album": "ALB", "artist": "ART", "playlist": "PLS"}
 GRID_SIZE = 8
 TABS = ("playlists", "albums", "artists", "recent")
 _CURSOR_LIMIT = 50
@@ -382,3 +385,47 @@ class Browser:
                     )
                 )
         return rows, 1 + int(data.get("total") or 0), 1
+
+    async def _load_search(self, node: Node) -> tuple[list[Row], int, int]:
+        """Full results for one type (SHOW ALL); ALL shows tracks."""
+        kind = node.id or "track"
+        _, offset, limit = self._window(node, 0)
+        data = await self._api.search(node.context_uri, [kind], limit, offset)
+        block = data.get(f"{kind}s") or {}
+        rows = [row for row in (search_row(kind, item) for item in block.get("items") or []) if row]
+        return rows, int(block.get("total") or len(rows)), 0
+
+    def open_search(self, query: str, kind: str) -> None:
+        """Show SHOW ALL results as a Library list (BACK returns to the tab)."""
+        self._stack = [self._tab_root(self._tab), Node("search", f"SEARCH: {query.upper()}", id=kind, context_uri=query)]
+
+
+def search_row(kind: str, item: dict[str, Any] | None) -> Row | None:
+    """Row for a search result of any type."""
+    if not item or not item.get("id"):
+        return None
+    if kind == "track":
+        return _track_row(item, "", None)
+    image = _pick_image(item.get("images"), 40)
+    if kind == "album":
+        return Row(
+            title=item.get("name") or "?",
+            subtitle=", ".join(a.get("name", "") for a in item.get("artists", [])),
+            image=image,
+            open=_album_open(item),
+        )
+    if kind == "artist":
+        return Row(
+            title=item.get("name") or "?",
+            image=image,
+            open=Node("artist", item.get("name") or "Artist", id=item["id"],
+                      context_uri=item.get("uri") or f"spotify:artist:{item['id']}", image=image),
+        )
+    owner = (item.get("owner") or {}).get("display_name") or ""
+    return Row(
+        title=item.get("name") or "?",
+        subtitle=owner,
+        image=image,
+        open=Node("playlist", item.get("name") or "Playlist", id=item["id"],
+                  context_uri=item.get("uri") or f"spotify:playlist:{item['id']}", image=image),
+    )

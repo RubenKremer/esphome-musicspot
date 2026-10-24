@@ -120,6 +120,13 @@ globals:
   - { id: ms_sleep_minutes, type: int, initial_value: "0" }
   - { id: ms_sleep_end_at, type: uint32_t, initial_value: "0" }
   - { id: ms_last_touch, type: uint32_t, initial_value: "0" }
+  # Search
+  - { id: ms_query, type: std::string, initial_value: '""' }
+  - { id: ms_scope, type: int, initial_value: "0" }
+  - { id: ms_kb_num, type: bool, initial_value: "false" }
+  - { id: ms_s_hits, type: int, initial_value: "0" }
+  - { id: ms_s_tags, type: std::vector<std::string> }
+  - { id: ms_s_texts, type: std::vector<std::string> }
   - { id: ms_brightness, type: int, initial_value: "70" }  # shown on the bar (= ms_bri_user)
   - { id: ms_bri_drag, type: bool, initial_value: "false" }
   - { id: ms_grid, type: bool, initial_value: "false" }
@@ -277,6 +284,11 @@ script:
     parameters:
       screen: int
     then:
+      - if:
+          condition:
+            lambda: return id(ms_splash_done) && !id(ms_idle);
+          then:
+            - lvgl.widget.show: ms_navbar
       - lvgl.widget.hide: ms_nav_ind_0
       - lvgl.widget.hide: ms_nav_ind_1
       - lvgl.widget.hide: ms_nav_ind_2
@@ -786,6 +798,181 @@ script:
                 id: ms_nav
                 screen: 0
 
+  # Search (design C, D25): full screen, nav bar hidden
+  - id: ms_open_search
+    then:
+      - lvgl.widget.hide: ms_navbar
+      - lvgl.page.show: ms_page_search
+      - script.execute: ms_search_render_query
+      - script.execute: ms_scope_render
+      - script.execute: ms_kb_render
+
+  - id: ms_close_search
+    then:
+      - script.stop: ms_search_debounce
+      - script.execute:
+          id: ms_nav
+          screen: 1
+
+  - id: ms_key
+    parameters:
+      ch: string
+    then:
+      - lambda: |-
+          if (ch == "DEL") { if (!id(ms_query).empty()) id(ms_query).pop_back(); }
+          else if (id(ms_query).size() < 18) id(ms_query) += ch;
+      - script.execute: ms_search_render_query
+      - script.execute: ms_search_debounce
+
+  # Ask Spotify only after a 600 ms pause in typing (shared dev-mode quota)
+  - id: ms_search_debounce
+    mode: restart
+    then:
+      - delay: 600ms
+      - script.execute:
+          id: ms_send_input
+          type: search
+          arg: !lambda return id(ms_query);
+          value: !lambda return id(ms_scope);
+
+  - id: ms_search_render_query
+    then:
+      - lvgl.label.update:
+          id: ms_s_query
+          text: !lambda return id(ms_query);
+      - if:
+          condition:
+            lambda: return id(ms_query).empty();
+          then:
+            - lvgl.widget.show: ms_s_placeholder
+            - lvgl.widget.hide: ms_s_nomatch
+            - lambda: |-
+                id(ms_s_texts).clear();
+                id(ms_s_tags).clear();
+                id(ms_s_hits) = 0;
+            - script.execute: ms_s_rows_render
+          else:
+            - lvgl.widget.hide: ms_s_placeholder
+
+  - id: ms_scope_render
+    then:
+      - lvgl.widget.update:
+          id: ms_scope_0
+          bg_color: !lambda "return id(ms_scope) == 0 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+          border_color: !lambda "return id(ms_scope) == 0 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x2E2E2E);"
+      - lvgl.label.update:
+          id: ms_scope_0_lbl
+          text_color: !lambda "return id(ms_scope) == 0 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_scope_1
+          bg_color: !lambda "return id(ms_scope) == 1 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+          border_color: !lambda "return id(ms_scope) == 1 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x2E2E2E);"
+      - lvgl.label.update:
+          id: ms_scope_1_lbl
+          text_color: !lambda "return id(ms_scope) == 1 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_scope_2
+          bg_color: !lambda "return id(ms_scope) == 2 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+          border_color: !lambda "return id(ms_scope) == 2 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x2E2E2E);"
+      - lvgl.label.update:
+          id: ms_scope_2_lbl
+          text_color: !lambda "return id(ms_scope) == 2 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_scope_3
+          bg_color: !lambda "return id(ms_scope) == 3 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+          border_color: !lambda "return id(ms_scope) == 3 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x2E2E2E);"
+      - lvgl.label.update:
+          id: ms_scope_3_lbl
+          text_color: !lambda "return id(ms_scope) == 3 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+      - lvgl.widget.update:
+          id: ms_scope_4
+          bg_color: !lambda "return id(ms_scope) == 4 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x0A0A0A);"
+          border_color: !lambda "return id(ms_scope) == 4 ? lv_color_hex(0xEDEDED) : lv_color_hex(0x2E2E2E);"
+      - lvgl.label.update:
+          id: ms_scope_4_lbl
+          text_color: !lambda "return id(ms_scope) == 4 ? lv_color_hex(0x0A0A0A) : lv_color_hex(0x8A8A8A);"
+
+  - id: ms_kb_render
+    then:
+      - lvgl.label.update:
+          id: ms_key_r1_0
+          text: !lambda 'return std::string(id(ms_kb_num) ? "1" : "Q");'
+      - lvgl.label.update:
+          id: ms_key_r1_1
+          text: !lambda 'return std::string(id(ms_kb_num) ? "2" : "W");'
+      - lvgl.label.update:
+          id: ms_key_r1_2
+          text: !lambda 'return std::string(id(ms_kb_num) ? "3" : "E");'
+      - lvgl.label.update:
+          id: ms_key_r1_3
+          text: !lambda 'return std::string(id(ms_kb_num) ? "4" : "R");'
+      - lvgl.label.update:
+          id: ms_key_r1_4
+          text: !lambda 'return std::string(id(ms_kb_num) ? "5" : "T");'
+      - lvgl.label.update:
+          id: ms_key_r1_5
+          text: !lambda 'return std::string(id(ms_kb_num) ? "6" : "Y");'
+      - lvgl.label.update:
+          id: ms_key_r1_6
+          text: !lambda 'return std::string(id(ms_kb_num) ? "7" : "U");'
+      - lvgl.label.update:
+          id: ms_key_r1_7
+          text: !lambda 'return std::string(id(ms_kb_num) ? "8" : "I");'
+      - lvgl.label.update:
+          id: ms_key_r1_8
+          text: !lambda 'return std::string(id(ms_kb_num) ? "9" : "O");'
+      - lvgl.label.update:
+          id: ms_key_r1_9
+          text: !lambda 'return std::string(id(ms_kb_num) ? "0" : "P");'
+      - lvgl.label.update:
+          id: ms_key_mode
+          text: !lambda 'return std::string(id(ms_kb_num) ? "ABC" : "123");'
+
+  - id: ms_s_rows_render
+    then:
+      - if:
+          condition:
+            lambda: return id(ms_s_texts).size() > 0;
+          then:
+            - lvgl.label.update:
+                id: ms_s_row_1_tag
+                text: !lambda 'return id(ms_s_tags).size() > 0 ? id(ms_s_tags)[0] : std::string("");'
+            - lvgl.label.update:
+                id: ms_s_row_1_text
+                text: !lambda return id(ms_s_texts)[0];
+            - lvgl.widget.show: ms_s_row_1
+          else:
+            - lvgl.widget.hide: ms_s_row_1
+      - if:
+          condition:
+            lambda: return id(ms_s_texts).size() > 1;
+          then:
+            - lvgl.label.update:
+                id: ms_s_row_2_tag
+                text: !lambda 'return id(ms_s_tags).size() > 1 ? id(ms_s_tags)[1] : std::string("");'
+            - lvgl.label.update:
+                id: ms_s_row_2_text
+                text: !lambda return id(ms_s_texts)[1];
+            - lvgl.widget.show: ms_s_row_2
+          else:
+            - lvgl.widget.hide: ms_s_row_2
+      - if:
+          condition:
+            lambda: return id(ms_s_texts).size() > 2;
+          then:
+            - lvgl.label.update:
+                id: ms_s_row_3_tag
+                text: !lambda 'return id(ms_s_tags).size() > 2 ? id(ms_s_tags)[2] : std::string("");'
+            - lvgl.label.update:
+                id: ms_s_row_3_text
+                text: !lambda return id(ms_s_texts)[2];
+            - lvgl.widget.show: ms_s_row_3
+          else:
+            - lvgl.widget.hide: ms_s_row_3
+      - lvgl.label.update:
+          id: ms_s_hits_lbl
+          text: !lambda return str_sprintf("%02d HITS >", id(ms_s_hits));
+
   - id: ms_refresh_device_rows
     then:
       - script.execute: ms_device_row_1_set
@@ -1128,6 +1315,32 @@ api:
             text: !lambda return version;
         - script.execute: ms_sleep_render
         - script.execute: ms_apply_backlight
+
+    # Search results: top 3 with LVGL recolor markup (#FF6A1A match#), hits across types
+    - action: show_search
+      variables:
+        query: string
+        hits: int
+        tags: string[]
+        texts: string[]
+      then:
+        - if:
+            condition:
+              # ignore answers to an older query
+              lambda: return query == id(ms_query);
+            then:
+              - lambda: |-
+                  id(ms_s_hits) = hits;
+                  id(ms_s_tags) = tags;
+                  id(ms_s_texts) = texts;
+              - script.execute: ms_s_rows_render
+              - if:
+                  condition:
+                    lambda: return !query.empty() && texts.empty();
+                  then:
+                    - lvgl.widget.show: ms_s_nomatch
+                  else:
+                    - lvgl.widget.hide: ms_s_nomatch
 
     - action: show_devices
       variables:
@@ -2141,7 +2354,7 @@ lvgl:
                               height: 40
                               styles: ms_st_box
                               on_click:
-                                - script.execute: { id: ms_toast, message: "Search arrives in Phase 6" }
+                                - script.execute: ms_open_search
                               widgets:
                                 - image: { src: ms_ic_search, align: CENTER, styles: ms_st_icon }
                     - obj:
@@ -3082,6 +3295,774 @@ lvgl:
                               widgets:
                                 - image: { id: ms_q_pg_dn_img, src: ms_ic_down, align: CENTER, styles: ms_st_icon }
 
+    # ---------------- SEARCH (full screen, from LIBRARY; design C "1 font, 4 sizes") ----------------
+    - id: ms_page_search
+      bg_color: ms_c_bg
+      bg_opa: COVER
+      scrollable: false
+      widgets:
+        - obj:
+            width: 480
+            height: 280
+            align: TOP_MID
+            pad_top: 10
+            pad_left: 16
+            pad_right: 16
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+              pad_row: 6
+              pad_column: 0
+            widgets:
+              # BACK | query | CLEAR
+              - obj:
+                  width: 100%
+                  height: 44
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_column: 8
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        width: 44
+                        height: 44
+                        styles: ms_st_box
+                        on_click:
+                          - script.execute: ms_close_search
+                        widgets:
+                          - image: { src: ms_ic_back, align: CENTER, styles: ms_st_icon }
+                    - obj:
+                        width: 10
+                        flex_grow: 1
+                        height: 44
+                        border_width: 1
+                        border_color: ms_c_accent
+                        pad_left: 12
+                        pad_right: 12
+                        scrollable: false
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 2
+                          pad_row: 0
+                        widgets:
+                          - label: { id: ms_s_query, text: "", text_font: ms_mono24, text_color: ms_c_fg }
+                          - obj: { width: 12, height: 26, bg_color: ms_c_accent, bg_opa: COVER }
+                          - label: { id: ms_s_placeholder, text: "TYPE TO SEARCH", pad_left: 8, text_font: ms_mono16, text_color: ms_c_idle_dim }
+                    - button:
+                        width: 44
+                        height: 44
+                        styles: ms_st_box
+                        on_click:
+                          - lambda: id(ms_query).clear();
+                          - script.execute: ms_search_render_query
+                          - script.stop: ms_search_debounce
+                        widgets:
+                          - image: { src: ms_ic_close, align: CENTER, styles: ms_st_icon }
+              # Scope + hits
+              - obj:
+                  width: 100%
+                  height: 32
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 4
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        id: ms_scope_0
+                        width: SIZE_CONTENT
+                        height: 32
+                        pad_left: 9
+                        pad_right: 9
+                        border_width: 1
+                        border_color: ms_c_line
+                        bg_color: ms_c_bg
+                        bg_opa: COVER
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 0
+                          pad_row: 0
+                        on_click:
+                          - lambda: id(ms_scope) = 0;
+                          - script.execute: ms_scope_render
+                          - if:
+                              condition:
+                                lambda: return !id(ms_query).empty();
+                              then:
+                                - script.execute: ms_search_debounce
+                        widgets:
+                          - label: { id: ms_scope_0_lbl, text: "ALL", text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - button:
+                        id: ms_scope_1
+                        width: SIZE_CONTENT
+                        height: 32
+                        pad_left: 9
+                        pad_right: 9
+                        border_width: 1
+                        border_color: ms_c_line
+                        bg_color: ms_c_bg
+                        bg_opa: COVER
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 0
+                          pad_row: 0
+                        on_click:
+                          - lambda: id(ms_scope) = 1;
+                          - script.execute: ms_scope_render
+                          - if:
+                              condition:
+                                lambda: return !id(ms_query).empty();
+                              then:
+                                - script.execute: ms_search_debounce
+                        widgets:
+                          - label: { id: ms_scope_1_lbl, text: "TRK", text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - button:
+                        id: ms_scope_2
+                        width: SIZE_CONTENT
+                        height: 32
+                        pad_left: 9
+                        pad_right: 9
+                        border_width: 1
+                        border_color: ms_c_line
+                        bg_color: ms_c_bg
+                        bg_opa: COVER
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 0
+                          pad_row: 0
+                        on_click:
+                          - lambda: id(ms_scope) = 2;
+                          - script.execute: ms_scope_render
+                          - if:
+                              condition:
+                                lambda: return !id(ms_query).empty();
+                              then:
+                                - script.execute: ms_search_debounce
+                        widgets:
+                          - label: { id: ms_scope_2_lbl, text: "ALB", text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - button:
+                        id: ms_scope_3
+                        width: SIZE_CONTENT
+                        height: 32
+                        pad_left: 9
+                        pad_right: 9
+                        border_width: 1
+                        border_color: ms_c_line
+                        bg_color: ms_c_bg
+                        bg_opa: COVER
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 0
+                          pad_row: 0
+                        on_click:
+                          - lambda: id(ms_scope) = 3;
+                          - script.execute: ms_scope_render
+                          - if:
+                              condition:
+                                lambda: return !id(ms_query).empty();
+                              then:
+                                - script.execute: ms_search_debounce
+                        widgets:
+                          - label: { id: ms_scope_3_lbl, text: "ART", text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - button:
+                        id: ms_scope_4
+                        width: SIZE_CONTENT
+                        height: 32
+                        pad_left: 9
+                        pad_right: 9
+                        border_width: 1
+                        border_color: ms_c_line
+                        bg_color: ms_c_bg
+                        bg_opa: COVER
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 0
+                          pad_row: 0
+                        on_click:
+                          - lambda: id(ms_scope) = 4;
+                          - script.execute: ms_scope_render
+                          - if:
+                              condition:
+                                lambda: return !id(ms_query).empty();
+                              then:
+                                - script.execute: ms_search_debounce
+                        widgets:
+                          - label: { id: ms_scope_4_lbl, text: "PLS", text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - obj: { width: 10, flex_grow: 1, height: 1 }
+                    - button:
+                        height: 32
+                        width: SIZE_CONTENT
+                        layout:
+                          type: flex
+                          flex_flow: ROW
+                          flex_align_cross: CENTER
+                          flex_align_track: CENTER
+                          pad_column: 0
+                          pad_row: 0
+                        on_click:
+                          - script.stop: ms_search_debounce
+                          - script.execute: { id: ms_send_input, type: search_all, arg: "", value: 0 }
+                        widgets:
+                          - label: { id: ms_s_hits_lbl, text: "00 HITS >", text_font: ms_mono12, text_color: ms_c_accent, text_letter_space: 1 }
+              # Top 3 results
+              - button:
+                  id: ms_s_row_1
+                  width: 100%
+                  height: 44
+                  hidden: true
+                  border_width: 1
+                  border_side: [BOTTOM]
+                  border_color: ms_c_line_soft
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 12
+                    pad_row: 0
+                  on_click:
+                    - script.stop: ms_search_debounce
+                    - script.execute:
+                        id: ms_send_input
+                        type: search_tap
+                        arg: ""
+                        value: 1
+                  widgets:
+                    - label: { id: ms_s_row_1_tag, text: "", width: 36, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - label:
+                        id: ms_s_row_1_text
+                        text: ""
+                        width: 10
+                        flex_grow: 1
+                        long_mode: DOT
+                        height: 20  # one line, so DOT truncates instead of wrapping
+                        recolor: true
+                        text_font: ms_mono16
+                        text_color: ms_c_fg
+              - button:
+                  id: ms_s_row_2
+                  width: 100%
+                  height: 44
+                  hidden: true
+                  border_width: 1
+                  border_side: [BOTTOM]
+                  border_color: ms_c_line_soft
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 12
+                    pad_row: 0
+                  on_click:
+                    - script.stop: ms_search_debounce
+                    - script.execute:
+                        id: ms_send_input
+                        type: search_tap
+                        arg: ""
+                        value: 2
+                  widgets:
+                    - label: { id: ms_s_row_2_tag, text: "", width: 36, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - label:
+                        id: ms_s_row_2_text
+                        text: ""
+                        width: 10
+                        flex_grow: 1
+                        long_mode: DOT
+                        height: 20  # one line, so DOT truncates instead of wrapping
+                        recolor: true
+                        text_font: ms_mono16
+                        text_color: ms_c_fg
+              - button:
+                  id: ms_s_row_3
+                  width: 100%
+                  height: 44
+                  hidden: true
+                  border_width: 1
+                  border_side: [BOTTOM]
+                  border_color: ms_c_line_soft
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 12
+                    pad_row: 0
+                  on_click:
+                    - script.stop: ms_search_debounce
+                    - script.execute:
+                        id: ms_send_input
+                        type: search_tap
+                        arg: ""
+                        value: 3
+                  widgets:
+                    - label: { id: ms_s_row_3_tag, text: "", width: 36, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                    - label:
+                        id: ms_s_row_3_text
+                        text: ""
+                        width: 10
+                        flex_grow: 1
+                        long_mode: DOT
+                        height: 20  # one line, so DOT truncates instead of wrapping
+                        recolor: true
+                        text_font: ms_mono16
+                        text_color: ms_c_fg
+              - label:
+                  id: ms_s_nomatch
+                  text: "NO MATCHES"
+                  hidden: true
+                  pad_top: 14
+                  text_font: ms_mono12
+                  text_color: ms_c_dim
+                  text_letter_space: 1
+        # Keyboard
+        - obj:
+            width: 480
+            height: 200
+            align: BOTTOM_MID
+            bg_color: 0x141414
+            bg_opa: COVER
+            border_width: 1
+            border_side: [TOP]
+            border_color: ms_c_line
+            pad_all: 6
+            scrollable: false
+            layout:
+              type: flex
+              flex_flow: COLUMN
+              pad_row: 4
+              pad_column: 0
+            widgets:
+              - obj:
+                  width: 100%
+                  height: 44
+                  pad_left: 0
+                  pad_right: 0
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_column: 4
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "1" : "Q");'
+                        widgets:
+                          - label: { id: ms_key_r1_0, text: "Q", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "2" : "W");'
+                        widgets:
+                          - label: { id: ms_key_r1_1, text: "W", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "3" : "E");'
+                        widgets:
+                          - label: { id: ms_key_r1_2, text: "E", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "4" : "R");'
+                        widgets:
+                          - label: { id: ms_key_r1_3, text: "R", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "5" : "T");'
+                        widgets:
+                          - label: { id: ms_key_r1_4, text: "T", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "6" : "Y");'
+                        widgets:
+                          - label: { id: ms_key_r1_5, text: "Y", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "7" : "U");'
+                        widgets:
+                          - label: { id: ms_key_r1_6, text: "U", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "8" : "I");'
+                        widgets:
+                          - label: { id: ms_key_r1_7, text: "I", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "9" : "O");'
+                        widgets:
+                          - label: { id: ms_key_r1_8, text: "O", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: !lambda 'return std::string(id(ms_kb_num) ? "0" : "P");'
+                        widgets:
+                          - label: { id: ms_key_r1_9, text: "P", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+              - obj:
+                  width: 100%
+                  height: 44
+                  pad_left: 22
+                  pad_right: 22
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_column: 4
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "A"
+                        widgets:
+                          - label: { text: "A", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "S"
+                        widgets:
+                          - label: { text: "S", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "D"
+                        widgets:
+                          - label: { text: "D", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "F"
+                        widgets:
+                          - label: { text: "F", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "G"
+                        widgets:
+                          - label: { text: "G", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "H"
+                        widgets:
+                          - label: { text: "H", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "J"
+                        widgets:
+                          - label: { text: "J", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "K"
+                        widgets:
+                          - label: { text: "K", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "L"
+                        widgets:
+                          - label: { text: "L", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+              - obj:
+                  width: 100%
+                  height: 44
+                  pad_left: 0
+                  pad_right: 0
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_column: 4
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        width: 10
+                        flex_grow: 3
+                        height: 100%
+                        bg_color: 0x1C1C1C
+                        bg_opa: COVER
+                        on_click:
+                          - lambda: id(ms_kb_num) = !id(ms_kb_num);
+                          - script.execute: ms_kb_render
+                        widgets:
+                          - label: { id: ms_key_mode, text: "123", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "Z"
+                        widgets:
+                          - label: { text: "Z", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "X"
+                        widgets:
+                          - label: { text: "X", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "C"
+                        widgets:
+                          - label: { text: "C", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "V"
+                        widgets:
+                          - label: { text: "V", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "B"
+                        widgets:
+                          - label: { text: "B", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "N"
+                        widgets:
+                          - label: { text: "N", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 2
+                        height: 100%
+                        bg_color: 0x262626
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "M"
+                        widgets:
+                          - label: { text: "M", align: CENTER, text_font: ms_mono16, text_color: ms_c_fg }
+                    - button:
+                        width: 10
+                        flex_grow: 3
+                        height: 100%
+                        bg_color: 0x1C1C1C
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: "DEL"
+                        widgets:
+                          - label: { text: "DEL", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim }
+              - obj:
+                  width: 100%
+                  height: 44
+                  pad_left: 0
+                  pad_right: 0
+                  scrollable: false
+                  layout:
+                    type: flex
+                    flex_flow: ROW
+                    pad_column: 4
+                    pad_row: 0
+                  widgets:
+                    - button:
+                        width: 10
+                        flex_grow: 10
+                        height: 100%
+                        bg_color: 0x1C1C1C
+                        bg_opa: COVER
+                        on_click:
+                          - script.execute:
+                              id: ms_key
+                              ch: " "
+                        widgets:
+                          - label: { text: "SPACE", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim }
+                    - button:
+                        width: 10
+                        flex_grow: 5
+                        height: 100%
+                        bg_color: ms_c_accent
+                        bg_opa: COVER
+                        on_click:
+                          - script.stop: ms_search_debounce
+                          - script.execute: { id: ms_send_input, type: search_all, arg: "", value: 0 }
+                        widgets:
+                          - label: { text: "SHOW ALL", align: CENTER, text_font: ms_mono12, text_color: ms_c_bg, text_letter_space: 1 }
     # ---------------- IDLE CLOCK (after 2 min; any tap wakes) ----------------
     - id: ms_page_idle
       bg_color: ms_c_idle_bg
