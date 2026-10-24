@@ -6,6 +6,10 @@
 # Protocol: docs/panel-protocol.md. Look: design/mockups/design-c.html.
 # Requires the hardware package ids: my_display, my_touchscreen, display_backlight.
 
+substitutions:
+  # Firmware version: bump together with custom_components/musicspot/manifest.json
+  musicspot_version: "0.7.1"
+
 packages:
   theme: !include theme.yaml
   list_row_1: !include { file: list_row.yaml, vars: { n: 1, idx: 0 } }
@@ -120,6 +124,7 @@ globals:
   - { id: ms_sleep_minutes, type: int, initial_value: "0" }
   - { id: ms_sleep_end_at, type: uint32_t, initial_value: "0" }
   - { id: ms_last_touch, type: uint32_t, initial_value: "0" }
+  - { id: ms_set_pg, type: int, initial_value: "1" }
   # Search
   - { id: ms_query, type: std::string, initial_value: '""' }
   - { id: ms_scope, type: int, initial_value: "0" }
@@ -570,6 +575,31 @@ script:
           text: !lambda |-
             if (id(ms_clock_after) <= 0) return std::string("NEVER >");
             return str_sprintf("%d MIN >", id(ms_clock_after));
+
+  # SETUP pages (6 rows each, like LIBRARY)
+  - id: ms_set_page
+    parameters:
+      page: int
+    then:
+      - lambda: id(ms_set_pg) = page;
+      - if:
+          condition:
+            lambda: return page == 1;
+          then:
+            - lvgl.widget.hide: ms_set_group_1
+            - lvgl.widget.show: ms_set_group_0
+          else:
+            - lvgl.widget.hide: ms_set_group_0
+            - lvgl.widget.show: ms_set_group_1
+      - lvgl.label.update:
+          id: ms_set_pg_n
+          text: !lambda return str_sprintf("%02d", (int) page);
+      - lvgl.widget.update:
+          id: ms_set_pg_up_img
+          image_recolor: !lambda "return page <= 1 ? lv_color_hex(0x3A3A3A) : lv_color_hex(0xEDEDED);"
+      - lvgl.widget.update:
+          id: ms_set_pg_dn_img
+          image_recolor: !lambda "return page >= 2 ? lv_color_hex(0x3A3A3A) : lv_color_hex(0xEDEDED);"
 
   - id: ms_show_output
     then:
@@ -1034,6 +1064,9 @@ esphome:
         - script.execute: ms_sleep_render
         - script.execute: ms_dim_render
         - script.execute: ms_clock_setting_render
+        - script.execute:
+            id: ms_set_page
+            page: 1
         - script.execute: ms_apply_backlight
 
 # Brightness bar follows the backlight, also when it is changed from Home Assistant
@@ -1312,7 +1345,10 @@ api:
               return default_device.empty() ? std::string("-") : default_device;
         - lvgl.label.update:
             id: ms_set_version
-            text: !lambda return version;
+            text: !lambda |-
+              // Firmware and integration versions side by side, so a mismatch is visible
+              std::string integration = (!version.empty() && version[0] == 'V') ? version.substr(1) : version;
+              return std::string("FW ${musicspot_version} · INT ") + integration;
         - script.execute: ms_sleep_render
         - script.execute: ms_apply_backlight
 
@@ -1721,7 +1757,7 @@ lvgl:
                   scrollable: false
                   widgets:
                     - label: { text: "ESPHOME", align: LEFT_MID, text_font: ms_mono12, text_color: ms_c_idle_dim, text_letter_space: 1 }
-                    - label: { text: "V0.5", align: RIGHT_MID, text_font: ms_mono12, text_color: ms_c_idle_dim, text_letter_space: 1 }
+                    - label: { text: "V${musicspot_version}", align: RIGHT_MID, text_font: ms_mono12, text_color: ms_c_idle_dim, text_letter_space: 1 }
               - obj: { width: 100%, height: 10, flex_grow: 1, clickable: false, scrollable: false }
               # Logo: 3x3 squares, orange centre
               - obj:
@@ -2637,8 +2673,7 @@ lvgl:
             pad_left: 18
             pad_right: 18
             pad_bottom: 14
-            scrollable: true
-            scrollbar_mode: AUTO
+            scrollable: false
             layout:
               type: flex
               flex_flow: COLUMN
@@ -2650,375 +2685,477 @@ lvgl:
                   height: 32
                   pad_top: 10
                   styles: ms_st_label
-              # Brightness (10 segments)
+              # Two pages of settings + pager column (like LIBRARY)
               - obj:
                   width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
+                  height: 10
+                  flex_grow: 1
                   scrollable: false
                   layout:
                     type: flex
                     flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
                     pad_row: 0
+                    pad_column: 0
                   widgets:
-                    - label: { text: "Brightness", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
                     - obj:
                         width: 10
                         flex_grow: 1
-                        height: 18
+                        height: 100%
+                        pad_right: 14
                         scrollable: false
                         widgets:
                           - obj:
+                              id: ms_set_group_0
                               width: 100%
-                              height: 100%
-                              clickable: false
+                              height: SIZE_CONTENT
+                              border_width: 1
+                              border_side: [BOTTOM]
+                              border_color: ms_c_line
+                              scrollable: false
                               layout:
                                 type: flex
-                                flex_flow: ROW
-                                pad_column: 3
+                                flex_flow: COLUMN
                                 pad_row: 0
+                                pad_column: 0
                               widgets:
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 1 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 2 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 3 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 4 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 5 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 6 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 7 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 8 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 9 } }
-                              - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 10 } }
-                          - slider:
-                              id: ms_bri_slider
+                                # Brightness (10 segments)
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "Brightness", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - obj:
+                                          width: 10
+                                          flex_grow: 1
+                                          height: 18
+                                          scrollable: false
+                                          widgets:
+                                            - obj:
+                                                width: 100%
+                                                height: 100%
+                                                clickable: false
+                                                layout:
+                                                  type: flex
+                                                  flex_flow: ROW
+                                                  pad_column: 3
+                                                  pad_row: 0
+                                                widgets:
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 1 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 2 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 3 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 4 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 5 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 6 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 7 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 8 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 9 } }
+                                                - obj: !include { file: widgets/segment.yaml, vars: { group: bri, n: 10 } }
+                                            - slider:
+                                                id: ms_bri_slider
+                                                width: 100%
+                                                height: 100%
+                                                min_value: 5
+                                                max_value: 100
+                                                value: 70
+                                                bg_opa: TRANSP
+                                                indicator:
+                                                  bg_opa: TRANSP
+                                                knob:
+                                                  bg_opa: TRANSP
+                                                on_press:
+                                                  - lambda: id(ms_bri_drag) = true;
+                                                on_value:
+                                                  - if:
+                                                      condition:
+                                                        lambda: return id(ms_bri_drag);
+                                                      then:
+                                                        - lambda: id(ms_brightness) = (int) x;
+                                                        - script.execute: ms_bri_render
+                                                on_release:
+                                                  - lambda: |-
+                                                      id(ms_bri_drag) = false;
+                                                      id(ms_bri_user) = (int) x;
+                                                      id(ms_dim_suspended) = true;  // a manual change wins until the night ends
+                                                  - script.execute: ms_apply_backlight
+                                      - label:
+                                          id: ms_bri_value
+                                          text: "70"
+                                          width: 30
+                                          text_align: RIGHT
+                                          text_font: ms_mono12
+                                          text_color: ms_c_fg
+                                # Sleep timer: OFF | 15 | 30 | 60 | 90 (D29)
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "Sleep timer", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - obj:
+                                          width: SIZE_CONTENT
+                                          height: 30
+                                          styles: ms_st_box
+                                          scrollable: false
+                                          layout:
+                                            type: flex
+                                            flex_flow: ROW
+                                            pad_column: 0
+                                            pad_row: 0
+                                          widgets:
+                                            - button:
+                                                id: ms_sleep_opt_0
+                                                width: 38
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                border_width: 1
+                                                border_side: [RIGHT]
+                                                border_color: ms_c_line
+                                                on_click:
+                                                  - script.execute:
+                                                      id: ms_set_sleep
+                                                      minutes: 0
+                                                widgets:
+                                                  - label: { id: ms_sleep_opt_0_lbl, text: "OFF", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                            - button:
+                                                id: ms_sleep_opt_1
+                                                width: 38
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                border_width: 1
+                                                border_side: [RIGHT]
+                                                border_color: ms_c_line
+                                                on_click:
+                                                  - script.execute:
+                                                      id: ms_set_sleep
+                                                      minutes: 15
+                                                widgets:
+                                                  - label: { id: ms_sleep_opt_1_lbl, text: "15", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                            - button:
+                                                id: ms_sleep_opt_2
+                                                width: 38
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                border_width: 1
+                                                border_side: [RIGHT]
+                                                border_color: ms_c_line
+                                                on_click:
+                                                  - script.execute:
+                                                      id: ms_set_sleep
+                                                      minutes: 30
+                                                widgets:
+                                                  - label: { id: ms_sleep_opt_2_lbl, text: "30", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                            - button:
+                                                id: ms_sleep_opt_3
+                                                width: 38
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                border_width: 1
+                                                border_side: [RIGHT]
+                                                border_color: ms_c_line
+                                                on_click:
+                                                  - script.execute:
+                                                      id: ms_set_sleep
+                                                      minutes: 60
+                                                widgets:
+                                                  - label: { id: ms_sleep_opt_3_lbl, text: "60", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                            - button:
+                                                id: ms_sleep_opt_4
+                                                width: 38
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                on_click:
+                                                  - script.execute:
+                                                      id: ms_set_sleep
+                                                      minutes: 90
+                                                widgets:
+                                                  - label: { id: ms_sleep_opt_4_lbl, text: "90", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                # Clock screen after (tap to cycle)
+                                - button:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    on_click:
+                                      - lambda: |-
+                                          static const int options[] = {1, 2, 5, 10, 0};
+                                          int next = 2;
+                                          for (int i = 0; i < 5; i++)
+                                            if (options[i] == id(ms_clock_after)) { next = options[(i + 1) % 5]; break; }
+                                          id(ms_clock_after) = next;
+                                          id(ms_last_touch) = millis();
+                                      - script.execute: ms_clock_setting_render
+                                    widgets:
+                                      - label: { text: "Clock screen after", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - label: { id: ms_set_clock, text: "2 MIN >", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+                                # Dim at night: ON | OFF (D30)
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "Dim at night", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - obj:
+                                          width: SIZE_CONTENT
+                                          height: 30
+                                          styles: ms_st_box
+                                          scrollable: false
+                                          layout:
+                                            type: flex
+                                            flex_flow: ROW
+                                            pad_column: 0
+                                            pad_row: 0
+                                          widgets:
+                                            - button:
+                                                id: ms_dim_opt_0
+                                                width: 44
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                border_width: 1
+                                                border_side: [RIGHT]
+                                                border_color: ms_c_line
+                                                on_click:
+                                                  - lambda: id(ms_dim_night) = true;
+                                                  - script.execute: ms_dim_render
+                                                  - script.execute: ms_apply_backlight
+                                                widgets:
+                                                  - label: { id: ms_dim_opt_0_lbl, text: "ON", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                            - button:
+                                                id: ms_dim_opt_1
+                                                width: 44
+                                                height: 100%
+                                                bg_color: ms_c_bg
+                                                bg_opa: COVER
+                                                on_click:
+                                                  - lambda: id(ms_dim_night) = false;
+                                                  - script.execute: ms_dim_render
+                                                  - script.execute: ms_apply_backlight
+                                                widgets:
+                                                  - label: { id: ms_dim_opt_1_lbl, text: "OFF", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
+                                # Night hours (set in Home Assistant: panel Reconfigure, D31)
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "Night hours", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - label: { id: ms_set_night, text: "22:00 - 07:00", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+                                # Output (opens the speaker list)
+                                - button:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    on_click:
+                                      - script.execute: ms_show_output
+                                    widgets:
+                                      - label: { text: "Output", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - label:
+                                          id: ms_set_output
+                                          text: "NONE >"
+                                          width: 10
+                                          flex_grow: 1
+                                          long_mode: DOT
+                                          height: 15  # one line, so DOT truncates instead of wrapping
+                                          text_align: RIGHT
+                                          text_font: ms_mono12
+                                          text_color: ms_c_dim2
+                                          text_letter_space: 1
+                          - obj:
+                              id: ms_set_group_1
                               width: 100%
-                              height: 100%
-                              min_value: 5
-                              max_value: 100
-                              value: 70
-                              bg_opa: TRANSP
-                              indicator:
-                                bg_opa: TRANSP
-                              knob:
-                                bg_opa: TRANSP
-                              on_press:
-                                - lambda: id(ms_bri_drag) = true;
-                              on_value:
-                                - if:
-                                    condition:
-                                      lambda: return id(ms_bri_drag);
-                                    then:
-                                      - lambda: id(ms_brightness) = (int) x;
-                                      - script.execute: ms_bri_render
-                              on_release:
-                                - lambda: |-
-                                    id(ms_bri_drag) = false;
-                                    id(ms_bri_user) = (int) x;
-                                    id(ms_dim_suspended) = true;  // a manual change wins until the night ends
-                                - script.execute: ms_apply_backlight
-                    - label:
-                        id: ms_bri_value
-                        text: "70"
-                        width: 30
-                        text_align: RIGHT
-                        text_font: ms_mono12
-                        text_color: ms_c_fg
-              # Sleep timer: OFF | 15 | 30 | 60 | 90 (D29)
-              - obj:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  widgets:
-                    - label: { text: "Sleep timer", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                              height: SIZE_CONTENT
+                              border_width: 1
+                              border_side: [BOTTOM]
+                              border_color: ms_c_line
+                              scrollable: false
+                              hidden: true
+                              layout:
+                                type: flex
+                                flex_flow: COLUMN
+                                pad_row: 0
+                                pad_column: 0
+                              widgets:
+                                # Default speaker (set in Home Assistant: panel Reconfigure)
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "Default speaker", width: 150, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - label:
+                                          id: ms_set_default
+                                          text: "-"
+                                          width: 10
+                                          flex_grow: 1
+                                          long_mode: DOT
+                                          height: 15  # one line, so DOT truncates instead of wrapping
+                                          text_align: RIGHT
+                                          text_font: ms_mono12
+                                          text_color: ms_c_dim2
+                                          text_letter_space: 1
+                                # Music source (Music Assistant arrives in Phase 8)
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "Music source", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - label: { text: "SPOTIFY", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+                                # About
+                                - obj:
+                                    width: 100%
+                                    height: 50
+                                    border_width: 1
+                                    border_side: [TOP]
+                                    border_color: ms_c_line
+                                    scrollable: false
+                                    layout:
+                                      type: flex
+                                      flex_flow: ROW
+                                      flex_align_cross: CENTER
+                                      flex_align_track: CENTER
+                                      pad_column: 14
+                                      pad_row: 0
+                                    widgets:
+                                      - label: { text: "About", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
+                                      - label: { id: ms_set_version, text: "-", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
                     - obj:
-                        width: SIZE_CONTENT
-                        height: 30
-                        styles: ms_st_box
+                        width: 64
+                        height: 100%
+                        border_width: 1
+                        border_side: [LEFT, BOTTOM]
+                        border_color: ms_c_line
                         scrollable: false
                         layout:
                           type: flex
-                          flex_flow: ROW
-                          pad_column: 0
+                          flex_flow: COLUMN
                           pad_row: 0
+                          pad_column: 0
                         widgets:
                           - button:
-                              id: ms_sleep_opt_0
-                              width: 38
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
+                              width: 100%
+                              height: 10
+                              flex_grow: 1
                               border_width: 1
-                              border_side: [RIGHT]
+                              border_side: [BOTTOM]
                               border_color: ms_c_line
                               on_click:
                                 - script.execute:
-                                    id: ms_set_sleep
-                                    minutes: 0
+                                    id: ms_set_page
+                                    page: 1
                               widgets:
-                                - label: { id: ms_sleep_opt_0_lbl, text: "OFF", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-                          - button:
-                              id: ms_sleep_opt_1
-                              width: 38
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
+                                - image: { id: ms_set_pg_up_img, src: ms_ic_up, align: CENTER, styles: ms_st_icon }
+                          - obj:
+                              width: 100%
+                              height: 80
                               border_width: 1
-                              border_side: [RIGHT]
+                              border_side: [BOTTOM]
                               border_color: ms_c_line
+                              layout:
+                                type: flex
+                                flex_flow: COLUMN
+                                flex_align_main: CENTER
+                                flex_align_cross: CENTER
+                                flex_align_track: CENTER
+                                pad_row: 8
+                                pad_column: 0
+                              widgets:
+                                - label: { id: ms_set_pg_n, text: "01", text_font: ms_mono16, text_color: ms_c_fg }
+                                - obj: { width: 24, height: 1, bg_color: ms_c_line, bg_opa: COVER }
+                                - label: { text: "02", text_font: ms_mono12, text_color: ms_c_dim }
+                          - button:
+                              width: 100%
+                              height: 10
+                              flex_grow: 1
                               on_click:
                                 - script.execute:
-                                    id: ms_set_sleep
-                                    minutes: 15
+                                    id: ms_set_page
+                                    page: 2
                               widgets:
-                                - label: { id: ms_sleep_opt_1_lbl, text: "15", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-                          - button:
-                              id: ms_sleep_opt_2
-                              width: 38
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
-                              border_width: 1
-                              border_side: [RIGHT]
-                              border_color: ms_c_line
-                              on_click:
-                                - script.execute:
-                                    id: ms_set_sleep
-                                    minutes: 30
-                              widgets:
-                                - label: { id: ms_sleep_opt_2_lbl, text: "30", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-                          - button:
-                              id: ms_sleep_opt_3
-                              width: 38
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
-                              border_width: 1
-                              border_side: [RIGHT]
-                              border_color: ms_c_line
-                              on_click:
-                                - script.execute:
-                                    id: ms_set_sleep
-                                    minutes: 60
-                              widgets:
-                                - label: { id: ms_sleep_opt_3_lbl, text: "60", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-                          - button:
-                              id: ms_sleep_opt_4
-                              width: 38
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
-                              on_click:
-                                - script.execute:
-                                    id: ms_set_sleep
-                                    minutes: 90
-                              widgets:
-                                - label: { id: ms_sleep_opt_4_lbl, text: "90", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-              # Clock screen after (tap to cycle)
-              - button:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  on_click:
-                    - lambda: |-
-                        static const int options[] = {1, 2, 5, 10, 0};
-                        int next = 2;
-                        for (int i = 0; i < 5; i++)
-                          if (options[i] == id(ms_clock_after)) { next = options[(i + 1) % 5]; break; }
-                        id(ms_clock_after) = next;
-                        id(ms_last_touch) = millis();
-                    - script.execute: ms_clock_setting_render
-                  widgets:
-                    - label: { text: "Clock screen after", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
-                    - label: { id: ms_set_clock, text: "2 MIN >", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
-              # Dim at night: ON | OFF (D30)
-              - obj:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  widgets:
-                    - label: { text: "Dim at night", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
-                    - obj:
-                        width: SIZE_CONTENT
-                        height: 30
-                        styles: ms_st_box
-                        scrollable: false
-                        layout:
-                          type: flex
-                          flex_flow: ROW
-                          pad_column: 0
-                          pad_row: 0
-                        widgets:
-                          - button:
-                              id: ms_dim_opt_0
-                              width: 44
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
-                              border_width: 1
-                              border_side: [RIGHT]
-                              border_color: ms_c_line
-                              on_click:
-                                - lambda: id(ms_dim_night) = true;
-                                - script.execute: ms_dim_render
-                                - script.execute: ms_apply_backlight
-                              widgets:
-                                - label: { id: ms_dim_opt_0_lbl, text: "ON", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-                          - button:
-                              id: ms_dim_opt_1
-                              width: 44
-                              height: 100%
-                              bg_color: ms_c_bg
-                              bg_opa: COVER
-                              on_click:
-                                - lambda: id(ms_dim_night) = false;
-                                - script.execute: ms_dim_render
-                                - script.execute: ms_apply_backlight
-                              widgets:
-                                - label: { id: ms_dim_opt_1_lbl, text: "OFF", align: CENTER, text_font: ms_mono12, text_color: ms_c_dim, text_letter_space: 1 }
-              # Night hours (set in Home Assistant: panel Reconfigure, D31)
-              - obj:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  widgets:
-                    - label: { text: "Night hours", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
-                    - label: { id: ms_set_night, text: "22:00 - 07:00", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
-              # Output (opens the speaker list)
-              - button:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  on_click:
-                    - script.execute: ms_show_output
-                  widgets:
-                    - label: { text: "Output", width: 120, text_font: ms_sans16, text_color: ms_c_fg }
-                    - label:
-                        id: ms_set_output
-                        text: "NONE >"
-                        width: 10
-                        flex_grow: 1
-                        long_mode: DOT
-                        height: 15  # one line, so DOT truncates instead of wrapping
-                        text_align: RIGHT
-                        text_font: ms_mono12
-                        text_color: ms_c_dim2
-                        text_letter_space: 1
-              # Default speaker (set in Home Assistant: panel Reconfigure)
-              - obj:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  widgets:
-                    - label: { text: "Default speaker", width: 150, text_font: ms_sans16, text_color: ms_c_fg }
-                    - label:
-                        id: ms_set_default
-                        text: "-"
-                        width: 10
-                        flex_grow: 1
-                        long_mode: DOT
-                        height: 15  # one line, so DOT truncates instead of wrapping
-                        text_align: RIGHT
-                        text_font: ms_mono12
-                        text_color: ms_c_dim2
-                        text_letter_space: 1
-              # Music source (Music Assistant arrives in Phase 8)
-              - obj:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP]
-                  border_color: ms_c_line
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  widgets:
-                    - label: { text: "Music source", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
-                    - label: { text: "SPOTIFY", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
-              # About
-              - obj:
-                  width: 100%
-                  height: 50
-                  border_width: 1
-                  border_side: [TOP, BOTTOM]
-                  border_color: ms_c_line
-                  scrollable: false
-                  layout:
-                    type: flex
-                    flex_flow: ROW
-                    flex_align_cross: CENTER
-                    flex_align_track: CENTER
-                    pad_column: 14
-                    pad_row: 0
-                  widgets:
-                    - label: { text: "About", width: 10, flex_grow: 1, text_font: ms_sans16, text_color: ms_c_fg }
-                    - label: { id: ms_set_version, text: "-", text_font: ms_mono12, text_color: ms_c_dim2, text_letter_space: 1 }
+                                - image: { id: ms_set_pg_dn_img, src: ms_ic_down, align: CENTER, styles: ms_st_icon }
 
     # ---------------- OUTPUT (speaker list, from SETUP > Output or the speaker chip) ----------------
     - id: ms_page_output
