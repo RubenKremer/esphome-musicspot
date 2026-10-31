@@ -61,19 +61,17 @@ _MAX_DEVICES = 5
 @callback
 def async_resolve_action_prefix(hass: HomeAssistant, device_id: str) -> str | None:
     """Return the ESPHome action prefix (e.g. `musicspot_1`) if the device runs MusicSpot."""
-    device = dr.async_get(hass).async_get(device_id)
-    if device is None:
+    _device, entry = dr.async_get_device_and_config_entry_for_domain(
+        hass, device_id, domain=ESPHOME_DOMAIN
+    )
+    if entry is None:
         return None
-    for entry_id in device.config_entries:
-        entry = hass.config_entries.async_get_entry(entry_id)
-        if entry is None or entry.domain != ESPHOME_DOMAIN:
-            continue
-        name = entry.data.get("device_name")
-        if not name:
-            continue
-        prefix = name.replace("-", "_")
-        if hass.services.has_service(ESPHOME_DOMAIN, f"{prefix}_show_now_playing"):
-            return prefix
+    name = entry.data.get("device_name")
+    if not name:
+        return None
+    prefix = name.replace("-", "_")
+    if hass.services.has_service(ESPHOME_DOMAIN, f"{prefix}_show_now_playing"):
+        return prefix
     return None
 
 

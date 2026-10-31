@@ -199,6 +199,9 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 ## Findings
 
 <!-- Versions, pinouts, measured timings, API surprises. Date each entry. -->
+- 2026-10-31: HA 2026.10 warns that `DeviceEntry.config_entries` is deprecated (removed in
+  2027.10); a device now has one config entry. `async_resolve_action_prefix` now uses
+  `dr.async_get_device_and_config_entry_for_domain(..., domain=esphome)`.
 - 2026-10-22: Spotify Feb-2026 dev-mode changes: Premium owner, 5 users/app, search limit 10, batch/browse endpoints removed. Player + queue endpoints unaffected.
 - 2026-10-22: ESPHome `online_image` supports baseline JPEG only (no progressive).
 - 2026-10-22: Versions: Home Assistant 2026.10.2, ESPHome 2026.10.0.
