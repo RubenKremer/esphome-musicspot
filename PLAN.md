@@ -1,7 +1,7 @@
 # MusicSpot — Build Plan
 
 A wall-mounted Spotify controller on a **Guition ESP32-4848S040** (4" 480×480, ESP32-S3, 8 MB PSRAM),
-running **ESPHome + LVGL** as a thin client, driven by a **HACS custom integration** (`musicspot`)
+running **ESPHome + LVGL** as a thin client, driven by a **custom integration** (`musicspot`, installed from the HA Marketplace or HACS)
 that links each panel to a Spotify account.
 
 **How to use this file**
@@ -12,9 +12,9 @@ that links each panel to a Spotify account.
 
 **Repository:** `github.com/RubenKremer/esphome-musicspot` (public)
 
-**Repository layout** (HACS requires `custom_components/` and `hacs.json` at the root)
+**Repository layout** (the HA Marketplace — HACS built into core since 2026.11 — and standalone HACS require `custom_components/` and `hacs.json` at the root)
 ```
-custom_components/musicspot/     Home Assistant integration (HACS)
+custom_components/musicspot/     Home Assistant integration (Marketplace / HACS)
 hacs.json
 esphome/                         ESPHome firmware (thin client)
   musicspot.yaml                 device config (board-specific)
@@ -121,10 +121,13 @@ queue cannot be reordered/removed; no browse/new-releases/top-tracks; search max
 - [x] P7.1 Dim/screensaver after inactivity; wake on touch (optional LD2410 presence) — verified: design C idle clock after 2 min, tap wakes, 2026-10-24 (dimming and presence still open, see Settings design)
 - [ ] P7.2 Release images when leaving Browse; check free PSRAM over 24 h
 - [ ] P7.3 Translations (en, nl, de) — nl + de written 2026-10-24 (integration dialogs; panel screens stay English); verify in HA
-- [ ] P7.4 GitHub Actions: `hassfest` + HACS validation; ESPHome config compile check
-- [ ] P7.5 README: setup (Spotify app, HACS install, flashing), limits, screenshots
+- [ ] P7.4 GitHub Actions: `hassfest` + HACS validation (`hacs/action`; warns without `categories`, fails on an unknown one); ESPHome config compile check
+- [ ] P7.5 README: setup (Spotify app, Marketplace/HACS install, flashing), limits, screenshots — install section updated for the 2026.11 Marketplace, 2026-11-07
+- [ ] P7.18 HA 2026.11 developer changes (added 2026-11-07, see Findings): add a valid `categories` key to `manifest.json`;
+      optionally make `async_setup_entry`/`async_unload_entry` return `None` and raise `ConfigEntryNotReady`/`ConfigEntryError` with translated messages;
+      re-check deprecation warnings in the HA log after upgrading
 - [ ] P7.6 First tagged release (after the UI polish block below)
-- [ ] P7.17 Integration icon and logo (`custom_components/musicspot/brand/`, HA 2026.3+ local brand images) — added 2026-10-24; verify in HA. HACS' own dashboard doesn't show local icons yet (hacs/integration#5171)
+- [ ] P7.17 Integration icon and logo (`custom_components/musicspot/brand/`, HA 2026.3+ local brand images) — added 2026-10-24; verify in HA. Standalone HACS doesn't show local icons (hacs/integration#5171); the 2026.11 Marketplace shows brand images before install — check it picks up `brand/`
 
 ### UI polish (do before P7.6)
 The panel is functional but not refined (Ruben, 2026-10-23). Logic and protocol stay untouched.
@@ -199,6 +202,12 @@ Music Assistant player instead of the Spotify API. Same firmware and panel proto
 ## Findings
 
 <!-- Versions, pinouts, measured timings, API surprises. Date each entry. -->
+- 2026-11-07: HA 2026.11: HACS is built into core as the **Marketplace** (Settings → Marketplace → Add from link;
+  custom repositories need its GitHub connection and still need `hacs.json`; first install needs no restart, updates do).
+  Checked the integration against the 2026.11 developer posts: every `async_show_form` passes `step_id` (required for
+  custom integrations from 2027.5); no `DeviceInfo`, `UNDEFINED` (deprecated 2026.12), `add_to_platform_start` or
+  `hacs` data used; `DeviceEntry.config_entries` already replaced (2026-10-31). Optional: `categories` manifest key,
+  setup/unload returning `None` (bool still works for custom integrations) — tracked as P7.18.
 - 2026-10-31: HA 2026.10 warns that `DeviceEntry.config_entries` is deprecated (removed in
   2027.10); a device now has one config entry. `async_resolve_action_prefix` now uses
   `dr.async_get_device_and_config_entry_for_domain(..., domain=esphome)`.

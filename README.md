@@ -6,7 +6,7 @@
 
 A touch-panel music controller for Home Assistant: ESPHome + LVGL firmware for the
 **Guition ESP32-4848S040** (4" 480×480 square display that fits a standard wall box),
-with a HACS integration that connects each panel to a Spotify account.
+with a custom integration (installed from the Home Assistant Marketplace or HACS) that connects each panel to a Spotify account.
 
 <p align="center"><i>Skip the apps, not the songs.</i></p>
 
@@ -40,13 +40,22 @@ with a HACS integration that connects each panel to a Spotify account.
   per panel, serves resized album art, and pushes updates to the panel through ESPHome API actions.
 
 ## Requirements
-- Home Assistant with [HACS](https://hacs.xyz/)
+- Home Assistant 2026.11 or newer (uses the built-in Marketplace), or 2026.10 with [HACS](https://hacs.xyz/)
 - A Guition ESP32-4848S040 flashed with ESPHome
 - Spotify Premium, and your own app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 
 ## Installing the integration (development builds)
-1. HACS → ⋮ → **Custom repositories** → add `https://github.com/RubenKremer/esphome-musicspot`, type **Integration**.
-2. Download **MusicSpot** from HACS and restart Home Assistant.
+1. **Add the repository**
+   - **Home Assistant 2026.11+:** **Settings → Marketplace → Add from link**, enter
+     `RubenKremer/esphome-musicspot` (pick type **Integration** if asked), then **Install**.
+     Custom repositories need the Marketplace's GitHub connection
+     (**Settings → Devices & services → Marketplace → ⋮ → Reconfigure**).
+     The first install works without a restart; updates still need one.
+   - **Home Assistant 2026.10 with HACS:** HACS → ⋮ → **Custom repositories** → add
+     `https://github.com/RubenKremer/esphome-musicspot`, type **Integration**, download **MusicSpot**
+     and restart Home Assistant.
+2. If your Home Assistant is older than the latest MusicSpot release needs, the Marketplace's install
+   dialog offers earlier versions instead.
 3. **Settings → Devices & services → Add integration → MusicSpot.** When asked, enter your Spotify app's
    Client ID and Client Secret (you can reuse the app from the core Spotify integration), then sign in.
 4. **Link a panel:** on the MusicSpot account, click **Add panel** and pick the ESPHome device.

@@ -1,7 +1,8 @@
 # MusicSpot
 
 Touch-panel music controller for the Guition ESP32-4848S040: ESPHome + LVGL thin client (`esphome/`)
-driven by a HACS custom integration `musicspot` (`custom_components/musicspot/`, at repo root as HACS requires).
+driven by a custom integration `musicspot` (`custom_components/musicspot/` + `hacs.json` at repo root, as the
+Home Assistant Marketplace — HACS built into core since 2026.11 — and standalone HACS require).
 GitHub: `RubenKremer/esphome-musicspot` (public).
 
 ## Naming
