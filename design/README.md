@@ -2,7 +2,7 @@
 
 | Folder | Contents |
 |---|---|
-| `brand/` | `musicspot-logo-512.png`: source of the integration icon/logo (`custom_components/musicspot/brand/`) |
+| `brand/` | `musicspot-logo-512.png`: source of the integration logo; `musicspot-icons/`: icon set (light, dark, transparent; SVG + 24–512 px PNG). The integration icon (`custom_components/musicspot/brand/icon*.png`) is the light variant (256/512) |
 | `cyber-design/exports/` | Claude Design exports of design set **C** ("cyber-design"), one ZIP per screen |
 | `cyber-design/screenshots/` | Screenshots of some of those screens |
 | `mockups/design-c.html` | LVGL-faithful mockup of design C as built (font scale, protocol data, agreed deviations) |
